@@ -6,12 +6,17 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   app:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
           cache: npm
@@ -34,7 +39,7 @@ jobs:
           set -euo pipefail
           npx tsx tests/standin/server.ts > standin.log 2>&1 &
           node dist/server.js > app.log 2>&1 &
-          for i in $(seq 1 30); do curl -fs http://127.0.0.1:8080/health && break; sleep 1; done
+          for _ in $(seq 1 30); do curl -fs http://127.0.0.1:8080/health && break; sleep 1; done
           sleep 2
           url=$(grep -o 'http://127.0.0.1:8080/?instance=[^ ]*' standin.log)
           instance=$(echo "$url" | sed -E 's/.*instance=([^&]*).*/\1/')
@@ -44,7 +49,7 @@ jobs:
           curl -fs http://127.0.0.1:8080/static/app.js > /dev/null
           job=$(curl -fs -X POST http://127.0.0.1:8080/api/jobs -H "X-Wix-Instance: $instance" -H 'Content-Type: application/json' \
             -d '{"schemaId":"6a1f2c3d-0001-4000-8000-000000000001","entityIds":["prod-praline-box","prod-hazelnut-bar"],"locales":["de-CH","fr-CH"]}' | sed -E 's/.*"id":"([^"]+)".*/\1/')
-          for i in $(seq 1 30); do
+          for _ in $(seq 1 30); do
             status=$(curl -fs "http://127.0.0.1:8080/api/jobs/$job" -H "X-Wix-Instance: $instance")
             grep -q '"status":"running"' <<< "$status" || break
             sleep 1
