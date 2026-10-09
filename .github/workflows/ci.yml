@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  app:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+      # The built app against the stand-in Wix and Supertext APIs: open the dashboard
+      # page, translate two products into German and French, check what Wix received.
+      - name: Smoke test against the stand-ins
+        env:
+          WIX_APP_ID: ci
+          WIX_APP_SECRET: standin-secret
+          WIX_API_BASE: http://127.0.0.1:8766
+          SUPERTEXT_API_ENDPOINT: http://127.0.0.1:8765/v1/
+          SUPERTEXT_API_KEY: ci-key
+          PORT: '8080'
+        run: |
+          set -euo pipefail
+          npx tsx tests/standin/server.ts > standin.log 2>&1 &
+          node dist/server.js > app.log 2>&1 &
+          for i in $(seq 1 30); do curl -fs http://127.0.0.1:8080/health && break; sleep 1; done
+          sleep 2
+          url=$(grep -o 'http://127.0.0.1:8080/?instance=[^ ]*' standin.log)
+          instance=$(echo "$url" | sed -E 's/.*instance=([^&]*).*/\1/')
+          page=$(curl -fs "$url")
+          grep -q 'Translate with Supertext' <<< "$page"
+          grep -q 'Dark chocolate praline box' <<< "$page"
+          curl -fs http://127.0.0.1:8080/static/app.js > /dev/null
+          job=$(curl -fs -X POST http://127.0.0.1:8080/api/jobs -H "X-Wix-Instance: $instance" -H 'Content-Type: application/json' \
+            -d '{"schemaId":"6a1f2c3d-0001-4000-8000-000000000001","entityIds":["prod-praline-box","prod-hazelnut-bar"],"locales":["de-CH","fr-CH"]}' | sed -E 's/.*"id":"([^"]+)".*/\1/')
+          for i in $(seq 1 30); do
+            status=$(curl -fs "http://127.0.0.1:8080/api/jobs/$job" -H "X-Wix-Instance: $instance")
+            grep -q '"status":"running"' <<< "$status" || break
+            sleep 1
+          done
+          grep -q '"status":"done"' <<< "$status"
+          grep -q 'Done: 4 translated, 0 unchanged, 0 failed.' <<< "$status"
+          after=$(curl -fs "$url")
+          [ "$(grep -o 'badge done' <<< "$after" | wc -l)" = "4" ]
+          code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8080/?instance=forged.data")
+          [ "$code" = "401" ]
+      - if: failure()
+        run: cat standin.log app.log || true
