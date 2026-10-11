@@ -70,7 +70,7 @@ The user guide and installation guide include screenshots, taken by `npm run doc
 
 AI file translation API v1, same as the WordPress plugin: POST HTML file → poll status → GET translation → DELETE. Details in `docs/DEVELOPER.md`. Never commit API keys or the Wix app secret; use environment variables (`SUPERTEXT_API_KEY`, `WIX_APP_SECRET`) or the app's settings (stored encrypted).
 
-Lessons from the live API, apply them here: header `Authorization: Supertext-Auth-Key <key>` (strip a pasted prefix), retry HTTP 429 (per-second rate limit), and keep a whole text in one `data-st-id` element (each one is translated on its own): one segment per text field, HTML field or Ricos text block.
+Lessons from the live API, apply them here: header `Authorization: Supertext-Auth-Key <key>` (strip a pasted prefix), retry HTTP 429 (per-second rate limit), keep a whole text in one `data-st-id` element (each one is translated on its own): one segment per text field, HTML field or Ricos text block, and send the source as a bare language (`en`) but the target as a regional code (`de-DE`, `en-US`): Supertext rejects bare targets (`INVALID_LANGUAGE_PAIR`), so bare Wix locales get a regional default (see `docs/DEVELOPER.md` → *Language codes*).
 
 ## This repo
 
