@@ -171,6 +171,12 @@ The demo is a Wix site, not a container: Wix hosts the site, Railway only the ap
 4. **Accounts** (the demo accounts rule, as far as Wix allows): Supertext staff get access as **collaborators** with the *Admin (Co-Owner)* role; for tests and screenshots invite an editor-level collaborator with a role that can use apps (e.g. *Website Manager*). Wix accounts are personal and created by Wix, so they can't be created from Railway variables; passwords stay in Keeper, never in the repo or chat.
 5. Install the app (app dashboard → Test app → the demo site), then enter the API key under Settings or set `SUPERTEXT_API_KEY` on Railway.
 
+## Dependency updates
+
+Dependabot (`.github/dependabot.yml`) opens weekly pull requests: minor and patch updates grouped into one, GitHub Actions in another, each major update on its own. Merge one when CI is green and it doesn't change what the app supports.
+
+Some major versions are ignored on purpose: TypeScript (7.x is the native compiler; stay on 5.x until the type-checking and build tooling here is moved to it) and `@types/node` (the types must match the oldest Node version the app supports, Node 22, not the newest). Lift an ignore rule when the app moves to the new version.
+
 ## Code quality and security checks
 
 - **Checks** workflow (`.github/workflows/checks.yml`): [actionlint](https://github.com/rhysd/actionlint) and [zizmor](https://docs.zizmor.sh/) lint the workflows on every push and pull request. Dependency review fails a pull request that adds a package with a known vulnerability (moderate or worse). Third-party actions are pinned to commit SHAs; Dependabot keeps the pins up to date. To run the workflow lint locally: `pip install actionlint-py zizmor`, then `actionlint` and `zizmor .github/workflows` in the repo root.
