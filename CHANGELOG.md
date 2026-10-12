@@ -4,6 +4,8 @@ All notable changes to Supertext Translation for Wix.
 
 ## Unreleased
 
+- Fixed: translations of items that had none in that language yet were rejected by Wix (*Entity not found*); they are now created, and existing ones updated.
+
 ## 0.1.0 — 2026-10-09
 
 First version (in development: tested against a stand-in of the Wix APIs, not yet on a real Wix site).

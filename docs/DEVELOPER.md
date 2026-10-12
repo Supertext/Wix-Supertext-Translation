@@ -46,7 +46,8 @@ tests/                    Vitest tests; standin/ (Wix and Supertext stand-ins, s
 | Site languages | `POST /locales/v2/locale/query` | `SCOPE.MULTILINGUAL.MANAGE_TRANSLATIONS` (Wix Multilingual) |
 | All translation schemas of the site | `GET /translation-schema/v1/schemas/site` | `SCOPE.DC-MULTILINGUAL.READ_TRANSLATION_CONTENT` |
 | Original texts and existing translations | `POST /translation-content/v1/contents/query` (filter `schemaId`, `entityId`, `locale`) | `SCOPE.DC-MULTILINGUAL.READ_TRANSLATION_CONTENT` |
-| Write translations | `POST /translation-content/v1/bulk/contents/update-by-key` (up to 100) | `SCOPE.DC-MULTILINGUAL.WRITE_TRANSLATION_CONTENT` |
+| Create a translation (item has none in that language yet) | `POST /translation-content/v1/contents` | `SCOPE.DC-MULTILINGUAL.WRITE_TRANSLATION_CONTENT` |
+| Update an existing translation | `POST /translation-content/v1/bulk/contents/update-by-key` | `SCOPE.DC-MULTILINGUAL.WRITE_TRANSLATION_CONTENT` |
 
 HTTP 429 from Wix is retried like Supertext's (up to 4 times). Errors become `WixError`s with codes the UI translates (`wixAuth`, `multilingualMissing`, `wixUnavailable` …).
 
@@ -58,7 +59,7 @@ HTTP 429 from Wix is retried like Supertext's (up to 4 times). Errors become `Wi
    - **Fields** (`fields.ts`): the source content's fields whose schema field is `SHORT_TEXT`, `LONG_TEXT` (plain text), `HTML` (markup) or `RICH_CONTENT` (Ricos), not `hidden`, not `displayOnly`, and with text. Keys of repeated items (`choice(abc)`) match schema fields written with empty parentheses (`choice()`). A field with text in the target locale is kept unless *overwrite*.
    - **Segments:** each text or HTML field is one segment; Ricos is split into one segment per text block (`wix/ricos.ts`, below). All segments of the item go into one HTML document (several above 900,000 characters), one `<div data-st-id="N">` each.
    - **Supertext:** source = the primary locale's language (`en`), target = the locale's Supertext code (site setting, else the locale ID if it has a region, else a default region), `politeness` from the form-of-address setting.
-   - **Write back** with *Bulk Update Content By Key* (`schemaId` + `entityId` + `locale`; only the fields sent change), each field with `published` (setting *Mark translations as ready to publish*) and `updatedBy: EXTERNAL_APP`. A text longer than the schema field's `maxLength` isn't written (*too long for Wix*). If Supertext returns fewer segments than sent, nothing is written for that item.
+   - **Write back** (`WixClient.saveContent`): if the item already has translation content in that locale, *Bulk Update Content By Key* (`schemaId` + `entityId` + `locale`; only the fields sent change); if not, *Create Content*. Update by key only works on content that exists: on a real site it answers *Entity not found* for a new translation. If Wix disagrees with what the list showed (not found on update, already exists on create), the other call follows. Each field goes each field with `published` (setting *Mark translations as ready to publish*) and `updatedBy: EXTERNAL_APP`. A text longer than the schema field's `maxLength` isn't written (*too long for Wix*). If Supertext returns fewer segments than sent, nothing is written for that item.
 4. Errors: authentication, limit, missing Wix Multilingual or Wix permission errors stop the job; `INVALID_LANGUAGE_PAIR` skips that language for the rest of the job; anything else fails only that item. Jobs still running when the app restarts are marked *interrupted* on the next start.
 
 ### Ricos rich content
@@ -198,10 +199,7 @@ Never tag or create releases by hand. Changes to permissions or extensions are m
 
 ## Known limitations / roadmap
 
-- **Not yet tested on a real Wix site.** The app follows the Wix Multilingual API documentation; three things need confirming with `npm run wix:probe` on the demo site, and the code adapting if Wix differs:
-  - that Wix Stores (and Wix Blog) keep their **main-language texts in Translation Content**, which is where the app reads the originals. If they don't, the source has to come from the Stores and Blog APIs, mapped to the schema's field keys.
-  - the **locale format** used in translation content (`de-CH` as the locale ID, or `de`).
-  - that the app may **write to Wix Stores' schemas** (the documentation is written for apps translating their own content).
+- **First test on a real Wix site (October 2026, Wix Stores test site):** the app is installed, reads the site's locales (bare languages there, e.g. `de`, `fr`), lists the Wix Stores products from Translation Content in the main language and translates them with Supertext. Writing a *new* translation with *Update Content By Key* failed with *Entity not found*, hence *Create Content* for new translations. Still to confirm on the site: that creating translations in Wix Stores' schemas is allowed and shows up in the Translation Manager and on the live site, and Wix Blog.
 - Screenshots of Wix's own screens (Wix Multilingual's language setup, the Translation Manager with a translated product) follow once the demo site exists; the guides show the app's pages from the stand-ins until then.
 - Jobs run inside the web process (one Railway instance); a restart marks a running job *interrupted*. A queue comes later.
 - Up to 25 items per page and 100 per job; "translate everything" comes later.

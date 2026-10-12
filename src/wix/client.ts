@@ -230,22 +230,40 @@ export class WixClient {
   }
 
   /**
-   * Writes translations, identified by schema, entity and locale. Only the
-   * fields passed are changed. Up to 100 items per call.
+   * Saves one item's translation in a locale. Wix keeps one translation
+   * content per schema, entity and locale: an existing one is updated by key
+   * (only the fields passed change), a missing one has to be created first
+   * (*Update Content By Key* answers "Entity not found" for it). `exists` is
+   * the caller's best knowledge; if Wix disagrees, the other call is tried.
    */
-  async updateContentsByKey(contents: Content[]): Promise<void> {
-    for (let start = 0; start < contents.length; start += 100) {
-      const batch = contents.slice(start, start + 100);
-      const data = await this.call<{ results?: BulkResult[]; bulkActionMetadata?: { totalFailures?: number } }>(
-        'POST',
-        '/translation-content/v1/bulk/contents/update-by-key',
-        { contents: batch.map((content) => ({ content })), returnEntity: false },
-      );
-      const failed = (data.results ?? []).find((result) => result.itemMetadata && result.itemMetadata.success === false);
-      if (failed) {
-        const detail = failed.itemMetadata?.error?.description || failed.itemMetadata?.error?.code || '';
-        throw new WixError(`Wix rejected the translation: ${detail}`, 'wixRejected', { detail });
-      }
+  async saveContent(content: Content, exists: boolean): Promise<void> {
+    try {
+      if (exists) await this.updateContentByKey(content);
+      else await this.createContent(content);
+    } catch (error) {
+      const mismatch = exists ? isNotFound(error) : isAlreadyExists(error);
+      if (!mismatch) throw error;
+      if (exists) await this.createContent(content);
+      else await this.updateContentByKey(content);
+    }
+  }
+
+  /** Creates the translation content of one item in one locale. */
+  async createContent(content: Content): Promise<void> {
+    await this.call('POST', '/translation-content/v1/contents', { content });
+  }
+
+  /** Updates fields of existing translation content, found by schema, entity and locale. */
+  async updateContentByKey(content: Content): Promise<void> {
+    const data = await this.call<{ results?: BulkResult[] }>(
+      'POST',
+      '/translation-content/v1/bulk/contents/update-by-key',
+      { contents: [{ content }], returnEntity: false },
+    );
+    const failed = (data.results ?? []).find((result) => result.itemMetadata && result.itemMetadata.success === false);
+    if (failed) {
+      const detail = failed.itemMetadata?.error?.description || failed.itemMetadata?.error?.code || '';
+      throw new WixError(`Wix rejected the translation: ${detail}`, 'wixRejected', { detail });
     }
   }
 
@@ -314,6 +332,19 @@ interface Paging {
 
 interface BulkResult {
   itemMetadata?: { success?: boolean; error?: { code?: string; description?: string } };
+}
+
+const errorText = (error: unknown): string =>
+  error instanceof WixError ? `${error.message} ${error.detail ?? ''}` : String(error);
+
+/** Wix's "the item to update doesn't exist" (bulk item error or HTTP 404). */
+export function isNotFound(error: unknown): boolean {
+  return (error instanceof WixError && error.status === 404) || /not[ _]?found/i.test(errorText(error));
+}
+
+/** Wix's "this translation content exists already" (HTTP 409 or the error text). */
+export function isAlreadyExists(error: unknown): boolean {
+  return (error instanceof WixError && error.status === 409) || /already[ _]?exists?|duplicate/i.test(errorText(error));
 }
 
 function nextCursor(paging?: Paging): string | undefined {

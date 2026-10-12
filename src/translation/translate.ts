@@ -13,7 +13,7 @@ import { planFields, type PlannedField } from './fields.js';
  */
 
 export interface TranslateEntityOptions {
-  wix: Pick<WixClient, 'updateContentsByKey'>;
+  wix: Pick<WixClient, 'saveContent'>;
   supertext: Pick<SupertextClient, 'translateDocument'>;
   schema: Schema;
   source: Content;
@@ -87,7 +87,7 @@ export async function translateEntity(options: TranslateEntityOptions): Promise<
 
   const written = Object.keys(fields).length;
   if (written > 0) {
-    await options.wix.updateContentsByKey([
+    await options.wix.saveContent(
       {
         schemaId: schema.id,
         entityId: source.entityId,
@@ -95,7 +95,8 @@ export async function translateEntity(options: TranslateEntityOptions): Promise<
         fields,
         ...(source.parentEntityId ? { parentEntityId: source.parentEntityId } : {}),
       },
-    ]);
+      target !== undefined,
+    );
   }
   return { written, kept: plan.kept, tooLong };
 }

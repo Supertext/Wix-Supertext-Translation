@@ -92,8 +92,9 @@ export function createWixStandin(options: { locales?: WixLocale[]; schemas?: Sch
               candidate.locale === content.locale,
           );
           if (!existing) {
-            existing = { schemaId: content.schemaId, entityId: content.entityId, locale: content.locale, fields: {} };
-            state.contents.push(existing);
+            // Like Wix: update by key only works on translation content that exists.
+            results.push({ itemMetadata: { success: false, error: { code: 'ENTITY_NOT_FOUND', description: 'Entity not found' } } });
+            continue;
           }
           for (const [key, field] of Object.entries(content.fields ?? {})) {
             if (Object.keys(field).length === 0) delete existing.fields[key];
@@ -102,6 +103,23 @@ export function createWixStandin(options: { locales?: WixLocale[]; schemas?: Sch
           results.push({ itemMetadata: { success: true } });
         }
         return json({ results, bulkActionMetadata: { totalSuccesses: results.length, totalFailures: 0 } });
+      }
+      if (path === '/translation-content/v1/contents' && request.method === 'POST') {
+        const content = body.content as Content;
+        const schema = state.schemas.find((candidate) => candidate.id === content?.schemaId);
+        if (!schema || !content.entityId || !content.locale) return json({ message: 'Invalid content' }, 400);
+        const clash = state.contents.some(
+          (candidate) =>
+            candidate.schemaId === content.schemaId && candidate.entityId === content.entityId && candidate.locale === content.locale,
+        );
+        if (clash) return json({ message: 'Content already exists', details: { applicationError: { code: 'CONTENT_ALREADY_EXISTS', description: 'Content already exists' } } }, 409);
+        for (const [key, field] of Object.entries(content.fields ?? {})) {
+          if (!field.updatedBy) return json({ message: `fields.${key}.updatedBy is required` }, 400);
+          if (!(schema.fields[key] ?? schema.fields[key.replace(/\([^()]*\)/g, '()')])) return json({ message: `No field ${key}` }, 400);
+        }
+        const created: Content = { schemaId: content.schemaId, entityId: content.entityId, locale: content.locale, fields: { ...content.fields } };
+        state.contents.push(created);
+        return json({ content: created });
       }
       return json({ message: `No stand-in for ${request.method} ${path}` }, 404);
     },

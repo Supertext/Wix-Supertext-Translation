@@ -15,7 +15,7 @@ import { translateEntity } from './translate.js';
 
 export interface JobDeps {
   store: Store;
-  wix: Pick<WixClient, 'locales' | 'schemas' | 'allContents' | 'updateContentsByKey'>;
+  wix: Pick<WixClient, 'locales' | 'schemas' | 'allContents' | 'saveContent'>;
   supertext: (settings: SiteSettings) => Pick<SupertextClient, 'translateDocument'>;
 }
 
