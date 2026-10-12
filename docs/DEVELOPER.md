@@ -80,6 +80,16 @@ AI file translation API v1 at `https://api.supertext.com/v1/`, same as the WordP
 
 Header `Authorization: Supertext-Auth-Key <key>` (a pasted prefix is stripped). HTTP 429 is retried up to 4 times (`Retry-After`, else 1/2/4/8 s with jitter). `GET features` validates the key (*Test connection*). The key is the site's own (Settings, AES-256-GCM encrypted in the database with `APP_ENCRYPTION_KEY`, else a key derived from `WIX_APP_SECRET`), else `SUPERTEXT_API_KEY`.
 
+## Language codes
+
+Supertext wants the **source** as a bare language (`en`) and the **target** as a regional code (`de-DE`, `fr-CH`, `en-US`); a bare target such as `de` is rejected with `INVALID_LANGUAGE_PAIR`. `src/translation/language-codes.ts` turns Wix locales into Supertext codes:
+
+- **Target** (`supertextCode`): the site's own code (Settings → Languages), else the locale if it has a region, normalized (`pt-br` → `pt-BR`; scripts and numeric regions such as `zh-Hant`, `es-419` keep their form), else a default region: ar-SA, bg-BG, cs-CZ, da-DK, de-DE, el-GR, en-US, es-ES, et-EE, fi-FI, fr-FR, hr-HR, hu-HU, it-IT, ja-JP, ko-KR, lt-LT, lv-LV, nb-NO, nl-NL, pl-PL, pt-PT, ro-RO, ru-RU, sk-SK, sl-SI, sr-RS, sv-SE, th-TH, tr-TR, uk-UA, vi-VN, zh-CN. Unknown bare codes are sent unchanged, so Supertext's error names them.
+- **Source:** the primary locale's language, sent as the bare language; the client strips any region (`en-US` → `en`).
+- Translating within one language (`en` → `en-GB`) is allowed.
+
+The stand-in (`tests/standin/supertext.ts`) rejects targets without region like the live API.
+
 ## Local development
 
 Requirements: Node.js 22.12+. No Wix account needed for most work: the stand-ins answer like the Wix and Supertext APIs for a sample site (`tests/standin/seed.ts`: a Swiss chocolate shop in English with German, French and Italian, two products, a category, a blog post; `samples.json` holds human translations of its texts).
@@ -160,6 +170,12 @@ The demo is a Wix site, not a container: Wix hosts the site, Railway only the ap
 3. A few products, a category and a blog post in English (the texts of `tests/standin/seed.ts`).
 4. **Accounts** (the demo accounts rule, as far as Wix allows): Supertext staff get access as **collaborators** with the *Admin (Co-Owner)* role; for tests and screenshots invite an editor-level collaborator with a role that can use apps (e.g. *Website Manager*). Wix accounts are personal and created by Wix, so they can't be created from Railway variables; passwords stay in Keeper, never in the repo or chat.
 5. Install the app (app dashboard → Test app → the demo site), then enter the API key under Settings or set `SUPERTEXT_API_KEY` on Railway.
+
+## Dependency updates
+
+Dependabot (`.github/dependabot.yml`) opens weekly pull requests: minor and patch updates grouped into one, GitHub Actions in another, each major update on its own. Merge one when CI is green and it doesn't change what the app supports.
+
+Some major versions are ignored on purpose: TypeScript (7.x is the native compiler; stay on 5.x until the type-checking and build tooling here is moved to it) and `@types/node` (the types must match the oldest Node version the app supports, Node 22, not the newest). Lift an ignore rule when the app moves to the new version.
 
 ## Code quality and security checks
 
