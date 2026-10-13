@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { en } from '../src/i18n/en.js';
 import { LOCALES, MESSAGES, localeFromRequest, resolveLocale, translator } from '../src/i18n/index.js';
 import { errorInfo } from '../src/i18n/error.js';
-import { SupertextClient } from '../src/supertext/client.js';
+import { createSupertextClient } from '../src/supertext/index.js';
 
 const placeholders = (text: string) => [...text.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();
 const urls = (text: string) => [...text.matchAll(/https:\/\/\S+?(?=[\s;)]|\.?$|\. )/g)].map((m) => m[0]).sort();
@@ -55,10 +55,10 @@ describe('translator', () => {
   });
 
   it("translates errors and keeps Supertext's own detail", async () => {
-    const client = new SupertextClient({ apiKey: 'bad', fetch: (async () => new Response('bad key', { status: 401 })) as unknown as typeof fetch });
-    const info = errorInfo(await client.validate().catch((error) => error));
-    expect(info.code).toBe('auth');
-    expect(translator('de').error(info)).toMatch(/^Authentifizierung fehlgeschlagen\..*\(bad key\)$/);
+    const client = createSupertextClient({ apiKey: 'bad', fetch: (async () => new Response('Invalid API key', { status: 401 })) as unknown as typeof fetch });
+    const info = errorInfo(await client.validateApiKey().catch((error: unknown) => error));
+    expect(info.code).toBe('authentication_failure');
+    expect(translator('de').error(info)).toMatch(/^Authentifizierung fehlgeschlagen\..*\(Invalid API key\)$/);
     expect(translator('it').error({ message: 'Something else' })).toBe('Something else');
   });
 });

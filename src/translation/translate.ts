@@ -1,20 +1,18 @@
-import { LocalizedError } from '../i18n/error.js';
-import type { Politeness, SupertextClient } from '../supertext/client.js';
-import { MAX_DOCUMENT_CHARACTERS } from '../supertext/client.js';
-import { buildDocument, parseDocument, type Segment } from '../supertext/html.js';
+import type { Politeness, SegmentInput, SupertextClient } from '../supertext/index.js';
 import type { Content, ContentField, Schema, WixClient } from '../wix/client.js';
 import { extractRicos, type RicosExtraction } from '../wix/ricos.js';
 import { planFields, type PlannedField } from './fields.js';
 
 /**
  * One entity (a product, a blog post …) into one locale: read the original
- * content, send the fields that need translating to Supertext in one HTML
- * document, write the translations back to Wix Multilingual.
+ * content, send the fields that need translating to Supertext (the SDK packs
+ * them into as few documents as possible, one segment per text field, HTML
+ * field or rich-text block), write the translations back to Wix Multilingual.
  */
 
 export interface TranslateEntityOptions {
   wix: Pick<WixClient, 'saveContent'>;
-  supertext: Pick<SupertextClient, 'translateDocument'>;
+  supertext: Pick<SupertextClient, 'translateTexts'>;
   schema: Schema;
   source: Content;
   /** The entity's current content in the target locale, if any. */
@@ -51,7 +49,7 @@ export async function translateEntity(options: TranslateEntityOptions): Promise<
     return { written: 0, kept: plan.kept, tooLong: 0 };
   }
 
-  const segments: Segment[] = [];
+  const segments: { text: string; html: boolean }[] = [];
   const parts: Part[] = plan.fields.map((field) => {
     const first = segments.length;
     if (field.kind === 'ricos') {
@@ -101,44 +99,15 @@ export async function translateEntity(options: TranslateEntityOptions): Promise<
   return { written, kept: plan.kept, tooLong };
 }
 
-/** Translates segments in as few documents as possible; every segment must come back. */
-async function translateSegments(segments: Segment[], options: TranslateEntityOptions): Promise<Map<number, string>> {
-  const result = new Map<number, string>();
-  for (const chunk of chunks(segments)) {
-    const local = chunk.map((index) => segments[index]);
-    const html = await options.supertext.translateDocument(buildDocument(local), {
-      targetLanguage: options.supertextTarget,
-      sourceLanguage: options.sourceLanguage,
-      politeness: options.politeness,
-    });
-    const parsed = parseDocument(html, local);
-    if (parsed.size !== local.length) {
-      throw new LocalizedError(
-        `Supertext returned ${parsed.size} of ${local.length} texts; nothing was saved for this item.`,
-        'incomplete',
-        { received: parsed.size, sent: local.length },
-      );
-    }
-    parsed.forEach((value, localIndex) => result.set(chunk[localIndex], value));
-  }
-  return result;
-}
-
-/** Groups segment indexes into documents below the size limit. */
-function chunks(segments: Segment[]): number[][] {
-  const groups: number[][] = [];
-  let current: number[] = [];
-  let size = 0;
-  segments.forEach((segment, index) => {
-    const length = segment.text.length + 40;
-    if (current.length > 0 && size + length > MAX_DOCUMENT_CHARACTERS) {
-      groups.push(current);
-      current = [];
-      size = 0;
-    }
-    current.push(index);
-    size += length;
+/** Translates the segments; the SDK fails with `incomplete_response` if any comes back missing. */
+async function translateSegments(
+  segments: { text: string; html: boolean }[],
+  options: TranslateEntityOptions,
+): Promise<Map<number, string>> {
+  const input = new Map<string, SegmentInput>(segments.map((segment, index) => [String(index), segment]));
+  const translated = await options.supertext.translateTexts(input, options.supertextTarget, {
+    sourceLang: options.sourceLanguage,
+    ...(options.politeness ? { politeness: options.politeness } : {}),
   });
-  if (current.length > 0) groups.push(current);
-  return groups;
+  return new Map([...translated].map(([key, value]) => [Number(key), value]));
 }

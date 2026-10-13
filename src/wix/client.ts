@@ -1,5 +1,5 @@
 import { LocalizedError } from '../i18n/error.js';
-import { retryDelayMs } from '../supertext/client.js';
+import { retryDelayMs } from '../supertext/index.js';
 
 /**
  * The Wix REST calls this app needs: access tokens for an app instance, the

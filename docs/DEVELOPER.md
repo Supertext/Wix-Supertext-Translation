@@ -19,9 +19,8 @@ src/
     jobs.ts               a job: items × languages, progress, error handling
     site.ts               languages, translatable schemas, list pages for the translate page
     language-codes.ts     Wix locale → Supertext code (defaults, per-site overrides)
-  supertext/
-    client.ts             Supertext AI file translation client (same as the other plugins)
-    html.ts               packs segments into one HTML document and back
+  supertext/index.ts      the Supertext SDK with this app's defaults (User-Agent, stand-in endpoint)
+  vendor/supertext-sdk/   the Supertext SDK for TypeScript, vendored (don't edit; see "Supertext SDK")
   store/
     store.ts              Store interface, in-memory store, AES-GCM for API keys
     postgres.ts           PostgreSQL store (creates its database and tables)
@@ -29,6 +28,7 @@ src/
   views/                  server-rendered pages (hono/jsx): translate, job panel, settings
 public/                   app.js (selection, start, polling, test connection), app.css
 scripts/probe.ts          read-only look at a real site's Wix Multilingual data
+scripts/sync-supertext-sdk.sh  refreshes src/vendor/supertext-sdk from the SDK repository
 tests/                    Vitest tests; standin/ (Wix and Supertext stand-ins, sample site); docs/screenshots.ts
 ```
 
@@ -57,9 +57,9 @@ HTTP 429 from Wix is retried like Supertext's (up to 4 times). Errors become `Wi
 2. *Translate* posts `schemaId`, item IDs (`entityId`, up to 100) and target locales. A job row is saved and runs in the web process; the page polls `GET /api/jobs/:id` every 2 s, which returns the job panel rendered in the user's language.
 3. For each item and each locale, one after the other (`translation/translate.ts`):
    - **Fields** (`fields.ts`): the source content's fields whose schema field is `SHORT_TEXT`, `LONG_TEXT` (plain text), `HTML` (markup) or `RICH_CONTENT` (Ricos), not `hidden`, not `displayOnly`, and with text. Keys of repeated items (`choice(abc)`) match schema fields written with empty parentheses (`choice()`). A field with text in the target locale is kept unless *overwrite*.
-   - **Segments:** each text or HTML field is one segment; Ricos is split into one segment per text block (`wix/ricos.ts`, below). All segments of the item go into one HTML document (several above 900,000 characters), one `<div data-st-id="N">` each.
+   - **Segments:** each text or HTML field is one segment; Ricos is split into one segment per text block (`wix/ricos.ts`, below). All segments of the item go to the SDK's `translateTexts`, which packs them into one HTML document (several above 900,000 characters), one `<div data-st-id="N">` each, and reads them back by key.
    - **Supertext:** source = the primary locale's language (`en`), target = the locale's Supertext code (site setting, else the locale ID if it has a region, else a default region), `politeness` from the form-of-address setting.
-   - **Write back** (`WixClient.saveContent`): if the item already has translation content in that locale, *Bulk Update Content By Key* (`schemaId` + `entityId` + `locale`; only the fields sent change); if not, *Create Content*. Update by key only works on content that exists: on a real site it answers *Entity not found* for a new translation. If Wix disagrees with what the list showed (not found on update, already exists on create), the other call follows. Each field goes with `published` (setting *Mark translations as ready to publish*) and `updatedBy: EXTERNAL_APP`. A text longer than the schema field's `maxLength` isn't written (*too long for Wix*). If Supertext returns fewer segments than sent, nothing is written for that item.
+   - **Write back** (`WixClient.saveContent`): if the item already has translation content in that locale, *Bulk Update Content By Key* (`schemaId` + `entityId` + `locale`; only the fields sent change); if not, *Create Content*. Update by key only works on content that exists: on a real site it answers *Entity not found* for a new translation. If Wix disagrees with what the list showed (not found on update, already exists on create), the other call follows. Each field goes with `published` (setting *Mark translations as ready to publish*) and `updatedBy: EXTERNAL_APP`. A text longer than the schema field's `maxLength` isn't written (*too long for Wix*). If Supertext returns fewer segments than sent, the SDK fails with `incomplete_response` and nothing is written for that item.
 4. Errors: authentication, limit, missing Wix Multilingual or Wix permission errors stop the job; `INVALID_LANGUAGE_PAIR` skips that language for the rest of the job; anything else fails only that item. Jobs still running when the app restarts are marked *interrupted* on the next start.
 
 ### Ricos rich content
@@ -68,7 +68,7 @@ Every block whose children are all `TEXT` nodes (paragraphs, headings, the parag
 
 ## Interface languages
 
-English, German, French and Italian, following the `locale` parameter Wix adds to the dashboard page (the browser's language, e.g. `de`), then `Accept-Language`, then English. Strings live in `src/i18n/{en,de,fr,it}.ts`; `en.ts` defines the keys and the others are typed `Messages`, so a missing key fails `npm run typecheck`, and `tests/i18n.test.ts` checks placeholders, URLs, "Supertext" and "Wix". **Every new or changed string gets all four languages in the same commit**, formal address (Sie, vous, Lei), Wix's own terms (*Übersetzungsmanager*, *Gestionnaire de traduction*, *Gestione traduzioni*; *Website*, *langue principale*), French ` ` before `? ! : ;`. Errors are `LocalizedError`s (English message for logs, `code` → `error.<code>`). The job panel is rendered on the server in the requested language.
+English, German, French and Italian, following the `locale` parameter Wix adds to the dashboard page (the browser's language, e.g. `de`), then `Accept-Language`, then English. Strings live in `src/i18n/{en,de,fr,it}.ts`; `en.ts` defines the keys and the others are typed `Messages`, so a missing key fails `npm run typecheck`, and `tests/i18n.test.ts` checks placeholders, URLs, "Supertext" and "Wix". **Every new or changed string gets all four languages in the same commit**, formal address (Sie, vous, Lei), Wix's own terms (*Übersetzungsmanager*, *Gestionnaire de traduction*, *Gestione traduzioni*; *Website*, *langue principale*), French ` ` before `? ! : ;`. Errors are `LocalizedError`s (English message for logs, `code` → `error.<code>`); Supertext errors use the SDK's codes as they are (`error.authentication_failure`, `error.quota_exceeded` …; `errorInfo()` in `src/i18n/error.ts` turns a `SupertextError` into the message data, and an `invalid_language_pair` without the codes into `invalid_language_pair_unknown`). The job panel is rendered on the server in the requested language.
 
 ## Supertext API protocol
 
@@ -79,14 +79,25 @@ AI file translation API v1 at `https://api.supertext.com/v1/`, same as the WordP
 3. `GET translate/ai/file/{id}/translation` → the translated HTML.
 4. `DELETE translate/ai/file/{id}`, always.
 
-Header `Authorization: Supertext-Auth-Key <key>` (a pasted prefix is stripped). HTTP 429 is retried up to 4 times (`Retry-After`, else 1/2/4/8 s with jitter). `GET features` validates the key (*Test connection*). The key is the site's own (Settings, AES-256-GCM encrypted in the database with `APP_ENCRYPTION_KEY`, else a key derived from `WIX_APP_SECRET`), else `SUPERTEXT_API_KEY`.
+All of this is done by the **Supertext SDK** (next section): header `Authorization: Supertext-Auth-Key <key>` (a pasted prefix is stripped), HTTP 429 retried up to 4 times (`Retry-After`, else 1/2/4/8 s with jitter), `GET features` to validate the key (*Test connection*), the User-Agent `supertext-sdk-typescript Wix-Supertext-Translation/<version>`. The key is the site's own (Settings, AES-256-GCM encrypted in the database with `APP_ENCRYPTION_KEY`, else a key derived from `WIX_APP_SECRET`), else `SUPERTEXT_API_KEY`.
+
+### Supertext SDK
+
+The app uses the TypeScript SDK from [Supertext-API-SDK-and-Guide](https://github.com/Supertext/Supertext-API-SDK-and-Guide) (`sdk/typescript`), the shared client of all Supertext plugins. It isn't on npm yet, so it is **vendored** in `src/vendor/supertext-sdk/` (its `VERSION.md` names the version and commit). Don't edit those files: fix the SDK upstream, then
+
+```bash
+scripts/sync-supertext-sdk.sh v0.2.0     # a tag or commit of the SDK repository (default: main)
+npm run typecheck && npm test
+```
+
+The app reaches the SDK only through `src/supertext/index.ts` (and `translation/language-codes.ts` for the pure language-code helpers), so moving to the npm package later means replacing the folder with `npm install supertext-sdk` and changing those imports.
 
 ## Language codes
 
-Supertext wants the **source** as a bare language (`en`) and the **target** as a regional code (`de-DE`, `fr-CH`, `en-US`); a bare target such as `de` is rejected with `INVALID_LANGUAGE_PAIR`. `src/translation/language-codes.ts` turns Wix locales into Supertext codes:
+Supertext wants the **source** as a bare language (`en`) and the **target** as a regional code (`de-DE`, `fr-CH`, `en-US`); a bare target such as `de` is rejected with `INVALID_LANGUAGE_PAIR`. `src/translation/language-codes.ts` turns Wix locales into Supertext codes with the SDK's `LanguageCodes`:
 
 - **Target** (`supertextCode`): the site's own code (Settings → Languages), else the locale if it has a region, normalized (`pt-br` → `pt-BR`; scripts and numeric regions such as `zh-Hant`, `es-419` keep their form), else a default region: ar-SA, bg-BG, cs-CZ, da-DK, de-DE, el-GR, en-US, es-ES, et-EE, fi-FI, fr-FR, hr-HR, hu-HU, it-IT, ja-JP, ko-KR, lt-LT, lv-LV, nb-NO, nl-NL, pl-PL, pt-PT, ro-RO, ru-RU, sk-SK, sl-SI, sr-RS, sv-SE, th-TH, tr-TR, uk-UA, vi-VN, zh-CN. Unknown bare codes are sent unchanged, so Supertext's error names them.
-- **Source:** the primary locale's language, sent as the bare language; the client strips any region (`en-US` → `en`).
+- **Source:** the primary locale's language, sent as the bare language; the SDK strips any region (`en-US` → `en`). The SDK also applies the default region to a bare code a site enters in its settings (`de` → `de-DE`).
 - Translating within one language (`en` → `en-GB`) is allowed.
 
 The stand-in (`tests/standin/supertext.ts`) rejects targets without region like the live API.
@@ -118,7 +129,7 @@ Read-only. Lists the site's locales, every translation schema (app, entity type,
 ## Tests
 
 ```bash
-npm test             # Vitest: instance signing, Ricos round trip, field selection, Supertext client, HTML, i18n, full flow
+npm test             # Vitest: instance signing, Ricos round trip, field selection, Wix client, i18n, full flow (the SDK has its own tests upstream)
 npm run typecheck
 npm run build
 ```

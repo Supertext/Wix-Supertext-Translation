@@ -4,7 +4,7 @@ import { verifyInstance, type AppInstance } from './auth/instance.js';
 import type { Config } from './config.js';
 import { errorInfo, LocalizedError, type ErrorInfo } from './i18n/error.js';
 import { resolveLocale, translator, type Translator } from './i18n/index.js';
-import { SupertextClient } from './supertext/client.js';
+import { createSupertextClient } from './supertext/index.js';
 import type { SiteSettings, Store } from './store/store.js';
 import { startJob } from './translation/jobs.js';
 import { isValidCode, normalizeCode } from './translation/language-codes.js';
@@ -40,9 +40,9 @@ export function createApp(deps: AppDeps) {
       fetch: deps.fetch,
     });
   const supertextFor = (settings: SiteSettings) =>
-    new SupertextClient({
+    createSupertextClient({
       apiKey: settings.apiKey || config.supertextApiKey,
-      endpoint: config.supertextEndpoint || undefined,
+      endpoint: config.supertextEndpoint,
       fetch: deps.fetch,
     });
   const hasKey = (settings: SiteSettings) => Boolean(settings.apiKey || config.supertextApiKey);
@@ -138,7 +138,7 @@ export function createApp(deps: AppDeps) {
     }
     const settings = await store.getSettings(instance.instanceId);
     if (!hasKey(settings)) {
-      return c.json({ error: errorInfo(new LocalizedError('No Supertext API key configured.', 'noApiKey')) }, 400);
+      return c.json({ error: errorInfo(new LocalizedError('No Supertext API key configured.', 'missing_api_key')) }, 400);
     }
     const { job, done } = await startJob(
       { store, wix: wixFor(instance.instanceId), supertext: supertextFor },
@@ -172,7 +172,7 @@ export function createApp(deps: AppDeps) {
     const settings = await store.getSettings(instance.instanceId);
     const key = body.apiKey?.trim() || settings.apiKey || config.supertextApiKey;
     try {
-      await new SupertextClient({ apiKey: key, endpoint: config.supertextEndpoint || undefined, fetch: deps.fetch }).validate();
+      await createSupertextClient({ apiKey: key, endpoint: config.supertextEndpoint, fetch: deps.fetch }).validateApiKey();
       return c.json({ ok: true, message: t.t('settings.testOk') });
     } catch (error) {
       return c.json({ ok: false, message: t.error(errorInfo(error)) });

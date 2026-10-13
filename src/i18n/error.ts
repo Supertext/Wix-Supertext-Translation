@@ -28,7 +28,36 @@ export interface ErrorInfo {
   detail?: string;
 }
 
+/**
+ * The Supertext SDK's errors (SupertextError: a stable `code` shared by all
+ * Supertext SDKs, plus `status`, `detail`, `sourceLang`/`targetLang`), without
+ * importing the SDK here: this file is also used by the browser.
+ */
+interface SdkError {
+  name: string;
+  message: string;
+  code: string;
+  status?: number;
+  detail?: string;
+  sourceLang?: string;
+  targetLang?: string;
+}
+
+const isSdkError = (error: unknown): error is SdkError =>
+  error instanceof Error && error.name === "SupertextError" && typeof (error as { code?: unknown }).code === "string";
+
 export function errorInfo(error: unknown): ErrorInfo {
+  if (isSdkError(error)) {
+    const pair = error.code === "invalid_language_pair";
+    const known = pair && error.sourceLang && error.targetLang;
+    const code = pair && !known ? "invalid_language_pair_unknown" : error.code;
+    const params: MessageParams = {};
+    if (error.status !== undefined) params.status = error.status;
+    if (known) Object.assign(params, { source: error.sourceLang, target: error.targetLang });
+    // Language-pair errors are fully explained by the message; others keep the API's own text.
+    const detail = pair ? undefined : error.detail;
+    return { message: error.message, code, params, ...(detail ? { detail } : {}) };
+  }
   if (error instanceof LocalizedError) {
     return {
       message: error.message,

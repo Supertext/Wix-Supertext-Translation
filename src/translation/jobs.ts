@@ -1,5 +1,5 @@
 import { errorInfo, LocalizedError, type ErrorInfo } from '../i18n/error.js';
-import type { SupertextClient } from '../supertext/client.js';
+import type { SupertextClient } from '../supertext/index.js';
 import { newJobId, type Job, type JobItem, type SiteSettings, type Store } from '../store/store.js';
 import type { WixClient } from '../wix/client.js';
 import { entityTitle } from './fields.js';
@@ -16,7 +16,7 @@ import { translateEntity } from './translate.js';
 export interface JobDeps {
   store: Store;
   wix: Pick<WixClient, 'locales' | 'schemas' | 'allContents' | 'saveContent'>;
-  supertext: (settings: SiteSettings) => Pick<SupertextClient, 'translateDocument'>;
+  supertext: (settings: SiteSettings) => Pick<SupertextClient, 'translateTexts'>;
 }
 
 export interface JobRequest {
@@ -29,17 +29,17 @@ export interface JobRequest {
 
 /** Errors that make every further item fail too: stop the job. */
 const FATAL = new Set([
-  'noApiKey',
-  'auth',
-  'limitExceeded',
-  'unreachable',
+  'missing_api_key',
+  'authentication_failure',
+  'quota_exceeded',
+  'transport_error',
   'wixAuth',
   'wixNotConfigured',
   'multilingualMissing',
   'wixUnreachable',
 ]);
 /** Errors that concern one target language: skip that language. */
-const LANGUAGE = new Set(['languagePair', 'languagePairUnknown']);
+const LANGUAGE = new Set(['invalid_language_pair', 'invalid_language_pair_unknown']);
 
 export function createJob(request: JobRequest): Job {
   return {

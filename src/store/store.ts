@@ -1,6 +1,6 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID } from 'node:crypto';
 import type { ErrorInfo } from '../i18n/error.js';
-import type { Politeness } from '../supertext/client.js';
+import type { Politeness } from '../supertext/index.js';
 
 /** Per-site settings, keyed by the Wix app instance ID. */
 export interface SiteSettings {

@@ -93,27 +93,26 @@ export const en = {
   "settings.about.version": "Supertext Translation for Wix, version {version}",
 
   // Errors from Supertext and Wix (codes set by LocalizedError)
-  "error.noApiKey":
+  "error.missing_api_key":
     "No Supertext API key configured. Add it under Settings. No Supertext account yet? Create one at https://www.supertext.com/person/en/account/signin. Generate your API key at https://www.supertext.com/en/integrations/api (requires the Admin role).",
-  "error.noFileId": "Supertext did not return a file id.",
-  "error.translationFailed": "Supertext failed to translate the document.",
-  "error.limitExceeded": "Your Supertext translation limit is exceeded.",
-  "error.fileDeleted": "The Supertext file was deleted before it could be downloaded.",
+  "error.no_file_id": "Supertext did not return a file id.",
+  "error.translation_error": "Supertext failed to translate the document.",
+  "error.quota_exceeded": "Your Supertext translation limit is exceeded.",
+  "error.file_deleted": "The Supertext file was deleted before it could be downloaded.",
   "error.timeout": "Timed out waiting for the Supertext translation.",
-  "error.emptyTranslation": "The translated document was empty.",
-  "error.unreachable": "Could not reach Supertext: {reason}",
-  "error.auth":
+  "error.transport_error": "Could not reach Supertext.",
+  "error.authentication_failure":
     "Authentication failed. Please check the Supertext API key. No Supertext account yet? Create one at https://www.supertext.com/person/en/account/signin. Generate your API key at https://www.supertext.com/en/integrations/api (requires the Admin role).",
-  "error.notFound": "The requested Supertext resource was not found.",
-  "error.tooLarge": "The content is too large for Supertext to translate in one go.",
-  "error.rateLimited": "Too many requests to Supertext. Please try again shortly.",
-  "error.unavailable": "The Supertext service is currently unavailable.",
-  "error.http": "Supertext answered with HTTP {status}.",
-  "error.languagePair":
+  "error.not_found": "The requested Supertext resource was not found.",
+  "error.payload_too_large": "The content is too large for Supertext to translate in one go.",
+  "error.too_many_requests": "Too many requests to Supertext. Please try again shortly.",
+  "error.service_unavailable": "The Supertext service is currently unavailable.",
+  "error.unexpected_status": "Supertext answered with HTTP {status}.",
+  "error.invalid_language_pair":
     "Supertext doesn't translate from \"{source}\" into \"{target}\". Set the Supertext code for this language under Settings → Languages, with a region (e.g. de-CH, fr-FR, en-US).",
-  "error.languagePairUnknown":
+  "error.invalid_language_pair_unknown":
     "Supertext doesn't translate into this language. Set the Supertext code for this language under Settings → Languages, with a region (e.g. de-CH, fr-FR, en-US).",
-  "error.incomplete": "Supertext returned {received} of {sent} texts; nothing was saved for this item.",
+  "error.incomplete_response": "The Supertext translation came back incomplete; nothing was saved for this item.",
   "error.sourceMissing": "The original text of this item was not found.",
   "error.schemaMissing": "This content type no longer exists on the site.",
   "error.multilingualMissing":

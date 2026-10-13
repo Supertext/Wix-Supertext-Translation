@@ -1,72 +1,25 @@
-// Wix locale IDs → Supertext language codes. Shared by server and browser.
+// Wix locale IDs → Supertext language codes, on top of the Supertext SDK's LanguageCodes.
 //
-// Wix locales usually carry a region ("de-CH", "en-US"); some are bare languages
-// ("de"). Supertext needs a regional code as target ("de-DE",
-// "en-US"); the source is sent as the bare language ("en"). Each site can
-// override the code per language under Settings → Languages.
+// Wix locales are bare languages ("de") or carry a region ("de-CH"). Supertext
+// needs a regional code as target ("de-DE"); the source is sent as the bare
+// language ("en"). Each site can override the code per language under
+// Settings → Languages.
+//
+// Pure functions without the SDK client, so the views can use them too.
 
-/** The region Supertext uses when a Wix locale has none. */
-const DEFAULT_REGION: Record<string, string> = {
-  ar: "ar-SA",
-  bg: "bg-BG",
-  cs: "cs-CZ",
-  da: "da-DK",
-  de: "de-DE",
-  el: "el-GR",
-  en: "en-US",
-  es: "es-ES",
-  et: "et-EE",
-  fi: "fi-FI",
-  fr: "fr-FR",
-  hr: "hr-HR",
-  hu: "hu-HU",
-  it: "it-IT",
-  ja: "ja-JP",
-  ko: "ko-KR",
-  lt: "lt-LT",
-  lv: "lv-LV",
-  nb: "nb-NO",
-  nl: "nl-NL",
-  pl: "pl-PL",
-  pt: "pt-PT",
-  ro: "ro-RO",
-  ru: "ru-RU",
-  sk: "sk-SK",
-  sl: "sl-SI",
-  sr: "sr-RS",
-  sv: "sv-SE",
-  th: "th-TH",
-  tr: "tr-TR",
-  uk: "uk-UA",
-  vi: "vi-VN",
-  zh: "zh-CN",
-};
+import { DEFAULT_REGIONS, isValid, normalize, target } from "../vendor/supertext-sdk/language-codes.js";
 
-/** "pt-br" → "pt-BR"; "de" → "de". */
-export function normalizeCode(code: string): string {
-  const [language, ...rest] = code.trim().replace(/_/g, "-").split("-");
-  if (!language) return "";
-  const region = rest.join("-");
-  if (!region) return language.toLowerCase();
-  return `${language.toLowerCase()}-${region.length === 2 ? region.toUpperCase() : region}`;
-}
+export { DEFAULT_REGIONS };
 
-/** The suggested Supertext code for a Wix locale. */
-export function defaultSupertextCode(wixLocale: string): string {
-  const code = normalizeCode(wixLocale);
-  if (code.includes("-")) return code;
-  return DEFAULT_REGION[code] ?? code;
-}
+/** "pt-br" → "pt-BR", "zh_hant" → "zh-Hant", "de" → "de". */
+export const normalizeCode = (code: string): string => normalize(code);
+
+/** The suggested Supertext code for a Wix locale: the locale if it has a region, else the default region. */
+export const defaultSupertextCode = (wixLocale: string): string => target(wixLocale);
 
 /** The code to send for a Wix locale: the site's own setting, else the default. */
-export function supertextCode(
-  wixLocale: string,
-  overrides: Record<string, string>,
-): string {
-  const own = overrides[wixLocale]?.trim();
-  return own ? normalizeCode(own) : defaultSupertextCode(wixLocale);
-}
+export const supertextCode = (wixLocale: string, overrides: Record<string, string>): string =>
+  target(wixLocale, overrides);
 
 /** A plausible language code: "de", "de-CH", "zh-Hant", "es-419". */
-export const isValidCode = (code: string): boolean =>
-  /^[a-z]{2,3}(-([A-Z]{2}|[A-Za-z]{4}|\d{3}))?$/.test(normalizeCode(code));
+export const isValidCode = (code: string): boolean => isValid(code);

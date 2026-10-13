@@ -50,7 +50,7 @@ describe('translate page', () => {
     expect(html).toContain('https://www.supertext.com/en/integrations/api');
     const { status, json } = await startJob(env, { schemaId: PRODUCTS, entityIds: ['prod-praline-box'], locales: ['de-CH'] });
     expect(status).toBe(400);
-    expect(json.error?.code).toBe('noApiKey');
+    expect(json.error?.code).toBe('missing_api_key');
   });
 });
 
@@ -131,13 +131,16 @@ describe('translation job', () => {
   it('skips a language Supertext rejects and stops on authentication errors', async () => {
     const env = setup();
     const settings = await env.store.getSettings(INSTANCE_ID);
-    await env.store.saveSettings({ ...settings, languageCodes: { 'de-CH': 'de' } });
+    // A code Supertext doesn't know (the SDK sends unknown bare languages unchanged).
+    await env.store.saveSettings({ ...settings, languageCodes: { 'de-CH': 'xx' } });
     await startJob(env, { schemaId: PRODUCTS, entityIds: ['prod-praline-box', 'prod-hazelnut-bar'], locales: ['de-CH', 'fr-CH'] });
     await env.settle();
     const job = (await env.store.latestJob(INSTANCE_ID))!;
     expect(job.status).toBe('done');
-    expect(job.items.filter((item) => item.locale === 'de-CH').map((item) => item.error?.code)).toEqual(['languagePair', 'languagePair']);
+    expect(job.items.filter((item) => item.locale === 'de-CH').map((item) => item.error?.code)).toEqual(['invalid_language_pair', 'invalid_language_pair']);
     expect(job.items.filter((item) => item.locale === 'fr-CH').every((item) => item.state === 'translated')).toBe(true);
+    const panel = (await (await env.request(`/api/jobs/${job.id}?locale=en`)).json()) as { html: string };
+    expect(panel.html).toContain('Supertext doesn&#39;t translate from &quot;en&quot; into &quot;xx&quot;.');
     expect(env.supertext.documents.map((document) => document.target)).toEqual(['fr-CH', 'fr-CH']);
 
     await env.store.saveSettings({ ...settings, apiKey: 'invalid' });
@@ -145,7 +148,7 @@ describe('translation job', () => {
     await env.settle();
     const failed = (await env.store.latestJob(INSTANCE_ID))!;
     expect(failed.status).toBe('failed');
-    expect(failed.error?.code).toBe('auth');
+    expect(failed.error?.code).toBe('authentication_failure');
     expect(failed.items).toHaveLength(1);
   });
 });

@@ -1,5 +1,5 @@
 import { parse, HTMLElement, TextNode, type Node } from 'node-html-parser';
-import { escapeHtml } from '../supertext/html.js';
+import { escapeHtml } from '../supertext/index.js';
 import type { RichContent, RicosDecoration, RicosNode } from './client.js';
 
 /**

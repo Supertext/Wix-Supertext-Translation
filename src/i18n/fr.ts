@@ -88,28 +88,26 @@ export const fr: Messages = {
   "settings.about.heading": "À propos",
   "settings.about.version": "Supertext Translation pour Wix, version {version}",
 
-  "error.noApiKey":
+  "error.missing_api_key":
     "Aucune clé API Supertext n'est configurée. Ajoutez-la sous Paramètres. Pas encore de compte Supertext ? Créez-en un sur https://www.supertext.com/person/en/account/signin. Générez votre clé API sur https://www.supertext.com/en/integrations/api (rôle Admin requis).",
-  "error.noFileId": "Supertext n'a pas renvoyé d'identifiant de fichier.",
-  "error.translationFailed": "Supertext n'a pas pu traduire le document.",
-  "error.limitExceeded": "Votre limite de traduction Supertext est dépassée.",
-  "error.fileDeleted": "Le fichier Supertext a été supprimé avant d'avoir pu être téléchargé.",
+  "error.no_file_id": "Supertext n'a pas renvoyé d'identifiant de fichier.",
+  "error.translation_error": "Supertext n'a pas pu traduire le document.",
+  "error.quota_exceeded": "Votre limite de traduction Supertext est dépassée.",
+  "error.file_deleted": "Le fichier Supertext a été supprimé avant d'avoir pu être téléchargé.",
   "error.timeout": "Délai dépassé en attendant la traduction Supertext.",
-  "error.emptyTranslation": "Le document traduit était vide.",
-  "error.unreachable": "Impossible de joindre Supertext : {reason}",
-  "error.auth":
+  "error.transport_error": "Impossible de joindre Supertext.",
+  "error.authentication_failure":
     "L'authentification a échoué. Veuillez vérifier la clé API Supertext. Pas encore de compte Supertext ? Créez-en un sur https://www.supertext.com/person/en/account/signin. Générez votre clé API sur https://www.supertext.com/en/integrations/api (rôle Admin requis).",
-  "error.notFound": "La ressource Supertext demandée est introuvable.",
-  "error.tooLarge": "Le contenu est trop volumineux pour être traduit en une fois par Supertext.",
-  "error.rateLimited": "Trop de requêtes envoyées à Supertext. Veuillez réessayer dans un instant.",
-  "error.unavailable": "Le service Supertext est actuellement indisponible.",
-  "error.http": "Supertext a répondu avec HTTP {status}.",
-  "error.languagePair":
+  "error.not_found": "La ressource Supertext demandée est introuvable.",
+  "error.payload_too_large": "Le contenu est trop volumineux pour être traduit en une fois par Supertext.",
+  "error.too_many_requests": "Trop de requêtes envoyées à Supertext. Veuillez réessayer dans un instant.",
+  "error.service_unavailable": "Le service Supertext est actuellement indisponible.",
+  "error.unexpected_status": "Supertext a répondu avec HTTP {status}.",
+  "error.invalid_language_pair":
     "Supertext ne traduit pas de « {source} » vers « {target} ». Définissez le code Supertext de cette langue sous Paramètres → Langues, avec une région (p. ex. de-CH, fr-FR, en-US).",
-  "error.languagePairUnknown":
+  "error.invalid_language_pair_unknown":
     "Supertext ne traduit pas vers cette langue. Définissez le code Supertext de cette langue sous Paramètres → Langues, avec une région (p. ex. de-CH, fr-FR, en-US).",
-  "error.incomplete":
-    "Supertext a renvoyé {received} textes sur {sent} ; rien n'a été enregistré pour cet élément.",
+  "error.incomplete_response": "La traduction Supertext est revenue incomplète\u00a0; rien n'a été enregistré pour cet élément.",
   "error.sourceMissing": "Le texte original de cet élément est introuvable.",
   "error.schemaMissing": "Ce type de contenu n'existe plus sur le site.",
   "error.multilingualMissing":

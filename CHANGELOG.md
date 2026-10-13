@@ -4,6 +4,8 @@ All notable changes to Supertext Translation for Wix.
 
 ## Unreleased
 
+- Uses the Supertext SDK (TypeScript, vendored in `src/vendor/supertext-sdk`) for all calls to Supertext instead of its own client. Supertext error messages now use the SDK's error codes; a language code entered without region in the settings (e.g. `de`) is sent with its default region (`de-DE`) instead of being rejected by Supertext.
+
 - Fixed: translations of items that had none in that language yet were rejected by Wix (*Entity not found*); they are now created, and existing ones updated.
 
 ## 0.1.0 — 2026-10-09
