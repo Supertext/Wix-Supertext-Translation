@@ -28,7 +28,7 @@ src/
   views/                  server-rendered pages (hono/jsx): translate, job panel, settings
 public/                   app.js (selection, start, polling, test connection), app.css
 scripts/probe.ts          read-only look at a real site's Wix Multilingual data
-scripts/sync-supertext-sdk.sh  refreshes src/vendor/supertext-sdk from the SDK repository
+scripts/vendor-sdk.sh         refreshes src/vendor/supertext-sdk from the SDK repository
 tests/                    Vitest tests; standin/ (Wix and Supertext stand-ins, sample site); docs/screenshots.ts
 ```
 
@@ -83,10 +83,10 @@ All of this is done by the **Supertext SDK** (next section): header `Authorizati
 
 ### Supertext SDK
 
-The app uses the TypeScript SDK from [Supertext-API-SDK-and-Guide](https://github.com/Supertext/Supertext-API-SDK-and-Guide) (`sdk/typescript`), the shared client of all Supertext plugins. It isn't on npm yet, so it is **vendored** in `src/vendor/supertext-sdk/` (its `VERSION.md` names the version and commit). Don't edit those files: fix the SDK upstream, then
+The app uses the TypeScript SDK from [Supertext-API-SDK-and-Guide](https://github.com/Supertext/Supertext-API-SDK-and-Guide) (`sdk/typescript`), the shared client of all Supertext plugins. It isn't on npm yet, so it is **vendored** in `src/vendor/supertext-sdk/` (with `LICENSE`, `COMMIT` = the SDK commit, `VERSION` and a `README.md`). Don't edit those files: fix the SDK upstream, then
 
 ```bash
-scripts/sync-supertext-sdk.sh v0.2.0     # a tag or commit of the SDK repository (default: main)
+scripts/vendor-sdk.sh [commit-or-branch]   # default: main; SDK_DIR=/path/to/clone uses a local clone as it is
 npm run typecheck && npm test
 ```
 

@@ -74,7 +74,7 @@ Lessons from the live API, apply them here: header `Authorization: Supertext-Aut
 
 ## This repo
 
-- Supertext calls go through the **Supertext SDK** (TypeScript), vendored in `src/vendor/supertext-sdk/` from https://github.com/Supertext/Supertext-API-SDK-and-Guide; reach it only through `src/supertext/index.ts`. Never edit the vendored files: fix the SDK upstream and run `scripts/sync-supertext-sdk.sh <tag or commit>`. Supertext errors use the SDK's codes as message keys (`error.<code>`).
+- Supertext calls go through the **Supertext SDK** (TypeScript), vendored in `src/vendor/supertext-sdk/` from https://github.com/Supertext/Supertext-API-SDK-and-Guide; reach it only through `src/supertext/index.ts`. Never edit the vendored files: fix the SDK upstream and run `scripts/vendor-sdk.sh [ref]`. Supertext errors use the SDK's codes as message keys (`error.<code>`).
 - Before committing: `npm run typecheck`, `npm test`, `npm run build`. CI also runs the built app against the stand-ins (`tests/standin/server.ts`).
 - Every request must verify Wix's signed instance (`src/auth/instance.ts`); never trust an instance ID sent in plain text. The instance ID is the site's key in the store.
 - Translated fields are decided by the schema (`src/translation/fields.ts`): `SHORT_TEXT`, `LONG_TEXT`, `HTML`, `RICH_CONTENT`; keep "What is translated" in `docs/USER_GUIDE.md` and the flow in `docs/DEVELOPER.md` in sync.

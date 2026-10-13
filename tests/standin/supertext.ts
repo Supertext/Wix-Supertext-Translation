@@ -52,6 +52,10 @@ export function createSupertextStandin(): SupertextStandin {
         if (!/^[a-z]{2}-[A-Z]{2}$/.test(target)) {
           return json({ detail: 'INVALID_LANGUAGE_PAIR', source_lang: form.get('source_lang'), target_lang: target }, 400);
         }
+        if (target.startsWith('xx-')) {
+          // The live API answers a regional code it doesn't know with 404.
+          return json({ error_code: 'INVALID_LANGUAGE_PAIR', source_lang: form.get('source_lang'), target_lang: target }, 404);
+        }
         const id = randomBytes(6).toString('hex');
         const html = await file.text();
         files.set(id, { html, target });

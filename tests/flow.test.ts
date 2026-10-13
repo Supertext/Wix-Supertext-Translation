@@ -151,6 +151,16 @@ describe('translation job', () => {
     expect(failed.error?.code).toBe('authentication_failure');
     expect(failed.items).toHaveLength(1);
   });
+
+  it('reports an unknown regional target (HTTP 404) as an unsupported language pair', async () => {
+    const env = setup();
+    const settings = await env.store.getSettings(INSTANCE_ID);
+    await env.store.saveSettings({ ...settings, languageCodes: { 'de-CH': 'xx-XX' } });
+    await startJob(env, { schemaId: PRODUCTS, entityIds: ['prod-hazelnut-bar'], locales: ['de-CH'] });
+    await env.settle();
+    const job = (await env.store.latestJob(INSTANCE_ID))!;
+    expect(job.items.map((item) => item.error?.code)).toEqual(['invalid_language_pair']);
+  });
 });
 
 describe('settings', () => {
