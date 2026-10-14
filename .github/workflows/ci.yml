@@ -34,6 +34,8 @@ jobs:
           WIX_API_BASE: http://127.0.0.1:8766
           SUPERTEXT_API_ENDPOINT: http://127.0.0.1:8765/v1/
           SUPERTEXT_API_KEY: ci-key
+          # Version reports go to the stand-in, never to the live Commando Center.
+          SUPERTEXT_REPORT_URL: http://127.0.0.1:8765/report
           PORT: '8080'
         run: |
           set -euo pipefail

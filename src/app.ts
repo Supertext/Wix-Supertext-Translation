@@ -4,13 +4,14 @@ import { verifyInstance, type AppInstance } from './auth/instance.js';
 import type { Config } from './config.js';
 import { errorInfo, LocalizedError, type ErrorInfo } from './i18n/error.js';
 import { resolveLocale, translator, type Translator } from './i18n/index.js';
-import { createSupertextClient } from './supertext/index.js';
+import { Reporting } from './reporting.js';
+import { createSupertextClient, type ApiKeyCheck } from './supertext/index.js';
 import type { SiteSettings, Store } from './store/store.js';
 import { startJob } from './translation/jobs.js';
-import { isValidCode, normalizeCode } from './translation/language-codes.js';
+import { supportedSource, supportedTarget } from './translation/language-codes.js';
 import { entityPage, siteLanguages, translatableSchemas, type SiteLanguages } from './translation/site.js';
 import { JobPanel } from './views/job.js';
-import { appUrl, type PageContext } from './views/layout.js';
+import { appUrl, KeyCheckMessage, type PageContext } from './views/layout.js';
 import { SettingsPage } from './views/settings.js';
 import { TranslatePage } from './views/translate.js';
 import { WixClient } from './wix/client.js';
@@ -22,6 +23,8 @@ export interface AppDeps {
   fetch?: typeof fetch;
   /** Called with each job's completion promise (tests wait on it). */
   onJob?: (done: Promise<unknown>) => void;
+  /** Version reports and the API key check (Commando Center); built from the config if not given. */
+  reporting?: Reporting;
 }
 
 /** Wix shows dashboard pages in an iframe on these hosts. */
@@ -46,6 +49,15 @@ export function createApp(deps: AppDeps) {
       fetch: deps.fetch,
     });
   const hasKey = (settings: SiteSettings) => Boolean(settings.apiKey || config.supertextApiKey);
+  const reporting =
+    deps.reporting ??
+    new Reporting({
+      config,
+      store,
+      siteInfo: (instanceId) => wixFor(instanceId).siteInfo(),
+      fetch: deps.fetch,
+      log: (message) => console.log(message),
+    });
 
   app.use('*', async (c, next) => {
     await next();
@@ -86,6 +98,7 @@ export function createApp(deps: AppDeps) {
     console.log(`Supertext: translate page opened on instance ${auth.instance.instanceId}`);
     const ctx: PageContext = { t, instance: auth.signed, page: 'translate' };
     const settings = await store.getSettings(auth.instance.instanceId);
+    reporting.inBackground(auth.instance.instanceId, 'onRequest');
     const wix = wixFor(auth.instance.instanceId);
     let languages: SiteLanguages | undefined;
     let schemas: Awaited<ReturnType<typeof translatableSchemas>> = [];
@@ -140,8 +153,14 @@ export function createApp(deps: AppDeps) {
     if (!hasKey(settings)) {
       return c.json({ error: errorInfo(new LocalizedError('No Supertext API key configured.', 'missing_api_key')) }, 400);
     }
+    reporting.inBackground(instance.instanceId, 'onRequest');
     const { job, done } = await startJob(
-      { store, wix: wixFor(instance.instanceId), supertext: supertextFor },
+      {
+        store,
+        wix: wixFor(instance.instanceId),
+        supertext: supertextFor,
+        onAuthenticationFailure: (status) => reporting.inBackground(instance.instanceId, 'authenticationFailed', status),
+      },
       { instanceId: instance.instanceId, schemaId: body.schemaId, entityIds, locales, overwrite: Boolean(body.overwrite) },
     );
     deps.onJob?.(done);
@@ -164,19 +183,25 @@ export function createApp(deps: AppDeps) {
     return c.json({ status: job.status, html });
   });
 
+  /** *Test connection*: the key typed into the field, else the saved key (then also the stored key check). */
   app.post('/api/test', async (c) => {
     const instance = apiAuth(c);
     if (instance instanceof Response) return instance;
     const t = localeOf(c);
     const body = (await c.req.json().catch(() => ({}))) as { apiKey?: string };
     const settings = await store.getSettings(instance.instanceId);
-    const key = body.apiKey?.trim() || settings.apiKey || config.supertextApiKey;
-    try {
-      await createSupertextClient({ apiKey: key, endpoint: config.supertextEndpoint, fetch: deps.fetch }).validateApiKey();
-      return c.json({ ok: true, message: t.t('settings.testOk') });
-    } catch (error) {
-      return c.json({ ok: false, message: t.error(errorInfo(error)) });
+    const typed = body.apiKey?.trim() ?? '';
+    let check: ApiKeyCheck | null = null;
+    if (!typed) check = (await reporting.run(instance.instanceId, 'testConnection'))?.check ?? null;
+    if (!check) {
+      check = await createSupertextClient({
+        apiKey: typed || reporting.apiKey(settings),
+        endpoint: config.supertextEndpoint,
+        fetch: deps.fetch,
+      }).checkApiKey();
     }
+    const html = (await KeyCheckMessage({ t, check }).toString()).toString();
+    return c.json({ ok: check.status === 'ok', status: check.status, html });
   });
 
   app.get('/settings', async (c) => {
@@ -184,6 +209,8 @@ export function createApp(deps: AppDeps) {
     if (auth instanceof Response) return auth;
     const t = localeOf(c);
     const settings = await store.getSettings(auth.instance.instanceId);
+    reporting.inBackground(auth.instance.instanceId, 'onRequest');
+    const keyCheck = await reporting.lastCheck(auth.instance.instanceId);
     let languages: SiteLanguages | undefined;
     let languagesError: ErrorInfo | undefined;
     try {
@@ -198,6 +225,8 @@ export function createApp(deps: AppDeps) {
         serverKey: Boolean(config.supertextApiKey),
         languages,
         languagesError,
+        keyCheck,
+        reports: { enabled: reporting.enabled(settings), forced: reporting.forcedByServer },
         saved: c.req.query('saved') === '1',
         invalidCodes: c.req.query('invalid') || undefined,
       })),
@@ -217,17 +246,25 @@ export function createApp(deps: AppDeps) {
     const tone = String(form.tone ?? 'default');
     settings.tone = tone === 'more' || tone === 'less' ? tone : 'default';
     settings.publish = form.publish === '1';
+    // The checkbox is disabled (not sent) while SUPERTEXT_VERSION_REPORTS decides for all sites.
+    if (!reporting.forcedByServer) settings.versionReports = form.versionReports === '1';
+    // Language mapping: `target:<locale>` for the site's other languages, `source:<locale>` for its main one.
+    // Only codes Supertext offers are stored (in their exact form); empty = the locale's own code, if Supertext has it.
     const invalid: string[] = [];
     const codes: Record<string, string> = {};
     for (const [name, value] of Object.entries(form)) {
-      if (!name.startsWith('code:')) continue;
+      const field = /^(target|source):(.+)$/.exec(name);
+      if (!field) continue;
       const code = String(value).trim();
       if (!code) continue;
-      if (isValidCode(code)) codes[name.slice(5)] = normalizeCode(code);
+      const supported = field[1] === 'source' ? supportedSource(code) : supportedTarget(code);
+      if (supported) codes[field[2]] = supported;
       else invalid.push(code);
     }
     settings.languageCodes = codes;
     await store.saveSettings(settings);
+    // The automatic API key check and the settings_saved report; never fails the save.
+    await reporting.run(auth.instance.instanceId, 'afterSettingsSaved');
     const ctx: PageContext = { t, instance: signed, page: 'settings' };
     return c.redirect(appUrl(ctx, '/settings', { saved: '1', invalid: invalid.join(', ') || undefined }), 303);
   });

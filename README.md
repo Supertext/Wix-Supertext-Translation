@@ -11,6 +11,7 @@ Translate your Wix site's content with [Supertext](https://www.supertext.com) AI
 - Keeps formatting: rich text keeps headings, lists, bold, italics and links.
 - Doesn't touch what you translated by hand unless you choose **Overwrite existing translations**.
 - The app's own pages are in English, German, French and Italian, following your dashboard language.
+- You choose the Supertext language for each site language (no guessed regions); the API key is checked when you save it, and the app can send its version information to Supertext support (on by default, can be turned off).
 
 **Needs:** a Wix site with Wix Multilingual and at least one more language, and a Supertext account with an API key. No Supertext account yet? [Create one at supertext.com](https://www.supertext.com/person/en/account/signin). Generate your API key at [supertext.com → Integrations → API](https://www.supertext.com/en/integrations/api) (requires the Admin role).
 

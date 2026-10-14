@@ -106,6 +106,12 @@ export interface Content {
   previewField?: string;
 }
 
+export interface SiteInfo {
+  url?: string;
+  siteId?: string;
+  name?: string;
+}
+
 export interface Page<T> {
   items: T[];
   nextCursor?: string;
@@ -164,6 +170,18 @@ export class WixClient {
     this.fetchFn = options.fetch ?? fetch;
     this.sleep = options.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
     this.tokens = options.tokens ?? sharedTokens;
+  }
+
+  /**
+   * The site this app instance is installed on (App Instance API, `GET /apps/v1/instance`):
+   * its published URL (none while the site is unpublished) and its site ID.
+   */
+  async siteInfo(): Promise<SiteInfo> {
+    const data = await this.call<{ site?: { url?: string; siteId?: string; siteDisplayName?: string } }>(
+      'GET',
+      '/apps/v1/instance',
+    );
+    return { url: data.site?.url || undefined, siteId: data.site?.siteId || undefined, name: data.site?.siteDisplayName || undefined };
   }
 
   /** All locales of the site; the primary one has `primaryLocale: true`. */

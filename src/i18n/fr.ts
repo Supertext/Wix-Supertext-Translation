@@ -32,6 +32,8 @@ export const fr: Messages = {
   "translate.step2": "2. Choisissez les langues",
   "translate.from": "Traduction depuis {language}, la langue principale de votre site.",
   "translate.hidden": "masquée sur le site",
+  "translate.noLanguage": "pas encore de langue Supertext : choisissez-en une sous {settings}",
+  "translate.noLanguage.settings": "Paramètres → Langues",
   "translate.overwrite": "Remplacer les traductions existantes",
   "translate.overwriteHint": "Sans cette option, les champs déjà traduits sont conservés.",
   "translate.overwriteWarning":
@@ -60,8 +62,7 @@ export const fr: Messages = {
 
   "settings.heading": "Paramètres Supertext",
   "settings.saved": "Paramètres enregistrés.",
-  "settings.invalidCodes":
-    "Enregistré, sauf ces codes de langue, qui ne sont pas des codes valides comme de-CH : {codes}.",
+  "settings.invalidCodes": "Enregistré, sauf ces codes de langue, que Supertext ne propose pas : {codes}.",
   "settings.apiKey.heading": "Clé API Supertext",
   "settings.apiKey.label": "Clé API",
   "settings.apiKey.placeholder": "Collez votre clé API Supertext",
@@ -71,19 +72,46 @@ export const fr: Messages = {
   "settings.apiKey.remove": "Supprimer la clé enregistrée",
   "settings.test": "Tester la connexion",
   "settings.testing": "Test en cours…",
-  "settings.testOk": "Connecté. La clé API fonctionne.",
+  "keyCheck.ok": "Clé API vérifiée : la connexion à Supertext fonctionne.",
+  "keyCheck.invalid":
+    "Supertext a refusé la clé API. Vérifiez que vous avez copié la clé entière ou générez-en une nouvelle sur {apiKey} (rôle Admin requis). Pas encore de compte Supertext ? Créez-en un sur {signup}.",
+  "keyCheck.missing":
+    "Aucune clé API n'est encore saisie. Pas encore de compte Supertext ? Créez-en un sur {signup}. Générez votre clé API sur {apiKey} (rôle Admin requis).",
+  "keyCheck.unreachable":
+    "La clé API n'a pas pu être vérifiée, car Supertext n'est pas joignable. Les paramètres sont enregistrés ; réessayez plus tard.",
+  "keyCheck.error":
+    "La clé API n'a pas pu être vérifiée : Supertext a répondu par une erreur ({status}). Les paramètres sont enregistrés ; réessayez plus tard.",
+  "keyCheck.signup": "supertext.com",
+  "keyCheck.checkedAt": "Dernière vérification de la clé API : {time}",
   "settings.languages.heading": "Langues",
   "settings.languages.text":
-    "Le code de langue vers lequel Supertext traduit pour chacune des langues de votre site. Supertext a besoin d'une région, par exemple de-CH pour l'allemand de Suisse ou fr-FR pour le français de France.",
+    "La langue Supertext vers laquelle chacune des langues de votre site est traduite (pour la langue principale : à partir de laquelle elle est traduite). Une langue du site dont Supertext propose le code tel quel (par exemple de-CH ou es) est utilisée sans choix ; choisissez-en une pour toutes les autres langues, par exemple allemand (Suisse) ou allemand (Allemagne) pour une langue du site « allemand ».",
   "settings.languages.main": "langue principale",
+  "settings.languages.site": "Langue du site",
+  "settings.languages.supertext": "Langue Supertext",
+  "settings.languages.exact": "Même code : {code}",
+  "settings.languages.choose": "— Non traduite : choisissez une langue Supertext —",
+  "settings.languages.missing": "Aucune langue Supertext",
+  "settings.languages.unmapped":
+    "Ces langues n'ont pas encore de langue Supertext et ne sont pas traduites tant que vous n'en choisissez pas une : {languages}.",
   "settings.style.heading": "Traduction",
   "settings.style.label": "Forme d'adresse",
   "settings.style.default": "Laisser Supertext décider",
   "settings.style.more": "Formelle (p. ex. « vous »)",
   "settings.style.less": "Informelle (p. ex. « tu »)",
+  "settings.style.noPoliteness":
+    "Le vouvoiement ou le tutoiement n'est pas disponible pour {languages} ; Supertext décide pour ces langues.",
   "settings.publish": "Marquer les traductions comme prêtes à être publiées",
   "settings.publishHint":
     "Désactivé : les traductions attendent dans le Gestionnaire de traduction jusqu'à ce que vous les marquiez comme prêtes à être publiées.",
+  "settings.reports.heading": "Informations de version",
+  "settings.reports.label": "Envoyer les informations de version à Supertext",
+  "settings.reports.help":
+    "Envoie à Supertext l'URL du site ainsi que les versions de cette app et de l'environnement d'exécution lorsque vous enregistrez ces paramètres et après une mise à jour. Le support Supertext voit ainsi quelle version vous utilisez. Aucun contenu, aucune clé API et aucune donnée personnelle ne sont transmis.",
+  "settings.reports.forcedOff":
+    "Désactivé pour tous les sites sur le serveur de l'app (SUPERTEXT_VERSION_REPORTS).",
+  "settings.reports.forcedOn":
+    "Activé pour tous les sites sur le serveur de l'app (SUPERTEXT_VERSION_REPORTS).",
   "settings.save": "Enregistrer",
   "settings.about.heading": "À propos",
   "settings.about.version": "Supertext Translation pour Wix, version {version}",
@@ -104,9 +132,13 @@ export const fr: Messages = {
   "error.service_unavailable": "Le service Supertext est actuellement indisponible.",
   "error.unexpected_status": "Supertext a répondu avec HTTP {status}.",
   "error.invalid_language_pair":
-    "Supertext ne traduit pas de « {source} » vers « {target} ». Définissez le code Supertext de cette langue sous Paramètres → Langues, avec une région (p. ex. de-CH, fr-FR, en-US).",
+    "Supertext ne traduit pas de « {source} » vers « {target} ». Choisissez une autre langue Supertext pour cette langue sous Paramètres → Langues.",
   "error.invalid_language_pair_unknown":
-    "Supertext ne traduit pas vers cette langue. Définissez le code Supertext de cette langue sous Paramètres → Langues, avec une région (p. ex. de-CH, fr-FR, en-US).",
+    "Supertext ne traduit pas vers cette langue. Choisissez une autre langue Supertext pour cette langue sous Paramètres → Langues.",
+  "error.unsupported_language":
+    "« {language} » n'a pas encore de langue Supertext ; rien n'a donc été envoyé. Choisissez sa langue Supertext sous Paramètres → Langues.",
+  "error.unsupported_feature":
+    "Supertext ne propose pas le vouvoiement ou le tutoiement pour « {target} ». Choisissez « Laisser Supertext décider » sous Paramètres → Traduction.",
   "error.incomplete_response": "La traduction Supertext est revenue incomplète\u00a0; rien n'a été enregistré pour cet élément.",
   "error.sourceMissing": "Le texte original de cet élément est introuvable.",
   "error.schemaMissing": "Ce type de contenu n'existe plus sur le site.",

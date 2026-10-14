@@ -3,8 +3,8 @@ import type { SupertextClient } from '../supertext/index.js';
 import { newJobId, type Job, type JobItem, type SiteSettings, type Store } from '../store/store.js';
 import type { WixClient } from '../wix/client.js';
 import { entityTitle } from './fields.js';
-import { supertextCode } from './language-codes.js';
-import { contentIndex, siteLanguages } from './site.js';
+import { resolveSource, resolveTarget, supportsPoliteness } from './language-codes.js';
+import { contentIndex, localeName, siteLanguages } from './site.js';
 import { translateEntity } from './translate.js';
 
 /**
@@ -17,6 +17,8 @@ export interface JobDeps {
   store: Store;
   wix: Pick<WixClient, 'locales' | 'schemas' | 'allContents' | 'saveContent'>;
   supertext: (settings: SiteSettings) => Pick<SupertextClient, 'translateTexts'>;
+  /** Supertext rejected the API key (HTTP 401/403): the Commando Center's key check is told. */
+  onAuthenticationFailure?: (httpStatus: number) => void;
 }
 
 export interface JobRequest {
@@ -39,7 +41,11 @@ const FATAL = new Set([
   'wixUnreachable',
 ]);
 /** Errors that concern one target language: skip that language. */
-const LANGUAGE = new Set(['invalid_language_pair', 'invalid_language_pair_unknown']);
+const LANGUAGE = new Set(['invalid_language_pair', 'invalid_language_pair_unknown', 'unsupported_language', 'unsupported_feature']);
+
+/** "<name>" has no Supertext language: nothing is sent for it. */
+const unsupported = (name: string): ErrorInfo =>
+  errorInfo(new LocalizedError(`${name} has no Supertext language.`, 'unsupported_language', { language: name }));
 
 export function createJob(request: JobRequest): Job {
   return {
@@ -99,6 +105,23 @@ export async function runJob(deps: JobDeps, job: Job): Promise<Job> {
   const sourceById = new Map(sources.map((content) => [content.entityId, content]));
   const skippedLocales = new Map<string, ErrorInfo>();
 
+  // No guessing: the site's mapping, else an exact Supertext code, else the language is skipped.
+  let sourceLanguage: string;
+  try {
+    sourceLanguage = resolveSource(languages.primary.id, settings.languageCodes);
+  } catch {
+    const name = localeName(languages.primary);
+    throw new LocalizedError(`${name} has no Supertext language.`, 'unsupported_language', { language: name });
+  }
+  const targetCodes = new Map<string, string>();
+  for (const locale of targets) {
+    try {
+      targetCodes.set(locale.id, resolveTarget(locale.id, settings.languageCodes));
+    } catch {
+      skippedLocales.set(locale.id, unsupported(localeName(locale)));
+    }
+  }
+
   for (const entityId of job.entityIds) {
     const source = sourceById.get(entityId);
     for (const locale of targets) {
@@ -119,6 +142,7 @@ export async function runJob(deps: JobDeps, job: Job): Promise<Job> {
         } else if (!source) {
           throw new LocalizedError('The original text of this item was not found.', 'sourceMissing');
         } else {
+          const supertextTarget = targetCodes.get(locale.id)!;
           const result = await translateEntity({
             wix,
             supertext,
@@ -126,9 +150,10 @@ export async function runJob(deps: JobDeps, job: Job): Promise<Job> {
             source,
             target: existing.get(`${entityId}|${locale.id}`),
             locale: locale.id,
-            supertextTarget: supertextCode(locale.id, settings.languageCodes),
-            sourceLanguage: languages.primary.languageCode || languages.primary.id,
-            politeness: settings.tone,
+            supertextTarget,
+            sourceLanguage,
+            // Formal/informal only where Supertext offers it for the target; otherwise Supertext decides.
+            politeness: supportsPoliteness(supertextTarget) ? settings.tone : undefined,
             overwrite: job.overwrite,
             publish: settings.publish,
           });
@@ -138,6 +163,9 @@ export async function runJob(deps: JobDeps, job: Job): Promise<Job> {
         const info = errorInfo(error);
         item.state = 'failed';
         item.error = info;
+        if (info.code === 'authentication_failure') {
+          deps.onAuthenticationFailure?.(Number(info.params?.status) || 401);
+        }
         if (info.code && FATAL.has(info.code)) {
           job.items.push(item);
           job.status = 'failed';

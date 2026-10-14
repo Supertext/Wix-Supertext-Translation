@@ -1,11 +1,18 @@
 import { randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { TARGET_LANGUAGES } from '../../src/supertext/index.js';
 
 /**
  * A stand-in for the Supertext AI file translation API v1. Returns the human
  * translations in samples.json for the sample site's texts (keyed by the
  * target's primary language subtag), and "[<target>] text" for anything else.
+ * Like the live API it accepts only the target codes `GET features` lists
+ * (HTTP 404 INVALID_LANGUAGE_PAIR otherwise) and answers politeness for a target
+ * without it with HTTP 400 FEATURE_ERROR. `POST /report` stands in for the
+ * Commando Center (reports are recorded, HTTP 202).
  */
+
+const TARGETS = new Map(TARGET_LANGUAGES.map((language) => [language.code, language]));
 
 const norm = (value: string) => value.replace(/\s+/g, ' ').replace(/> </g, '><').trim();
 const decode = (value: string) =>
@@ -27,16 +34,23 @@ export interface SupertextStandin {
   handle(request: Request): Promise<Response>;
   /** Documents received: target language and HTML. */
   documents: { target: string; source?: string; politeness?: string; html: string }[];
+  /** Commando Center reports received (`POST /report`). */
+  reports: Record<string, any>[];
 }
 
 export function createSupertextStandin(): SupertextStandin {
   const files = new Map<string, { html: string; target: string }>();
   const state: SupertextStandin = {
     documents: [],
+    reports: [],
     handle: async (request) => {
       const path = new URL(request.url).pathname.replace(/^\/v1/, '');
       const json = (body: unknown, status = 200) =>
         new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+      if (request.method === 'POST' && path === '/report') {
+        state.reports.push((await request.json()) as Record<string, any>);
+        return json({ ok: true }, 202);
+      }
       if (!/^Supertext-Auth-Key \S+$/.test(request.headers.get('authorization') ?? '')) {
         return json({ detail: 'missing key' }, 401);
       }
@@ -49,12 +63,14 @@ export function createSupertextStandin(): SupertextStandin {
         const file = form.get('file') as File | null;
         if (!file || file.type !== 'text/html') return json({ detail: 'FILETYPE_NOT_ALLOWED' }, 415);
         const target = String(form.get('target_lang'));
-        if (!/^[a-z]{2}-[A-Z]{2}$/.test(target)) {
-          return json({ detail: 'INVALID_LANGUAGE_PAIR', source_lang: form.get('source_lang'), target_lang: target }, 400);
-        }
-        if (target.startsWith('xx-')) {
-          // The live API answers a regional code it doesn't know with 404.
+        const language = TARGETS.get(target);
+        if (!language) {
+          // The live API answers any code that isn't in its list exactly with 404.
           return json({ error_code: 'INVALID_LANGUAGE_PAIR', source_lang: form.get('source_lang'), target_lang: target }, 404);
+        }
+        const politeness = form.get('politeness')?.toString();
+        if (politeness && !language.politeness) {
+          return json({ error_code: 'FEATURE_ERROR', feature: 'politeness', source_lang: form.get('source_lang'), target_lang: target }, 400);
         }
         const id = randomBytes(6).toString('hex');
         const html = await file.text();

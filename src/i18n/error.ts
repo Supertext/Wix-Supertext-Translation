@@ -54,8 +54,11 @@ export function errorInfo(error: unknown): ErrorInfo {
     const params: MessageParams = {};
     if (error.status !== undefined) params.status = error.status;
     if (known) Object.assign(params, { source: error.sourceLang, target: error.targetLang });
-    // Language-pair errors are fully explained by the message; others keep the API's own text.
-    const detail = pair ? undefined : error.detail;
+    if (error.code === "unsupported_language") params.language = error.targetLang ?? error.sourceLang ?? "?";
+    if (error.code === "unsupported_feature") params.target = error.targetLang ?? "?";
+    // Language errors are fully explained by the message; others keep the API's own text.
+    const language = pair || error.code === "unsupported_language" || error.code === "unsupported_feature";
+    const detail = language ? undefined : error.detail;
     return { message: error.message, code, params, ...(detail ? { detail } : {}) };
   }
   if (error instanceof LocalizedError) {

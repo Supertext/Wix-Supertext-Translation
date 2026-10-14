@@ -10,8 +10,10 @@ export interface SiteSettings {
   tone: Politeness;
   /** Mark translations as ready to publish (true) or leave them for review in the Translation Manager. */
   publish: boolean;
-  /** Wix locale ID → Supertext code, where the site overrides the default. */
+  /** Wix locale ID → Supertext code (Settings → Languages); one mapping for both directions. */
   languageCodes: Record<string, string>;
+  /** "Send version information to Supertext" (on by default; SUPERTEXT_VERSION_REPORTS=0 turns it off for all sites). */
+  versionReports: boolean;
 }
 
 export const defaultSettings = (instanceId: string): SiteSettings => ({
@@ -20,6 +22,7 @@ export const defaultSettings = (instanceId: string): SiteSettings => ({
   tone: 'default',
   publish: true,
   languageCodes: {},
+  versionReports: true,
 });
 
 export type ItemState = 'translated' | 'unchanged' | 'failed';
@@ -55,6 +58,9 @@ export interface Store {
   getSettings(instanceId: string): Promise<SiteSettings>;
   saveSettings(settings: SiteSettings): Promise<void>;
   deleteSite(instanceId: string): Promise<void>;
+  /** The Commando Center reporter's state of a site (plain JSON, as the SDK returns it); null if none yet. */
+  getReporterState(instanceId: string): Promise<unknown>;
+  saveReporterState(instanceId: string, state: unknown): Promise<void>;
   saveJob(job: Job): Promise<void>;
   getJob(instanceId: string, id: string): Promise<Job | undefined>;
   latestJob(instanceId: string): Promise<Job | undefined>;
@@ -99,6 +105,7 @@ export class Secrets {
 export class MemoryStore implements Store {
   private readonly settings = new Map<string, SiteSettings>();
   private readonly jobs = new Map<string, Job>();
+  private readonly reporter = new Map<string, unknown>();
 
   async getSettings(instanceId: string): Promise<SiteSettings> {
     return structuredClone(this.settings.get(instanceId) ?? defaultSettings(instanceId));
@@ -108,8 +115,17 @@ export class MemoryStore implements Store {
     this.settings.set(settings.instanceId, structuredClone(settings));
   }
 
+  async getReporterState(instanceId: string): Promise<unknown> {
+    return structuredClone(this.reporter.get(instanceId) ?? null);
+  }
+
+  async saveReporterState(instanceId: string, state: unknown): Promise<void> {
+    this.reporter.set(instanceId, structuredClone(state));
+  }
+
   async deleteSite(instanceId: string): Promise<void> {
     this.settings.delete(instanceId);
+    this.reporter.delete(instanceId);
     for (const [id, job] of this.jobs) if (job.instanceId === instanceId) this.jobs.delete(id);
   }
 

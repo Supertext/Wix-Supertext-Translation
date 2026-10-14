@@ -5,7 +5,7 @@ import { localeName, schemaGroup, schemaName } from '../translation/site.js';
 import type { Schema } from '../wix/client.js';
 import { JobPanel } from './job.js';
 import { ApiKeyHelp, appUrl, Layout, Notice, splitTemplate, type PageContext } from './layout.js';
-import { supertextCode } from '../translation/language-codes.js';
+import { targetCodeOf } from '../translation/language-codes.js';
 
 export interface TranslatePageProps {
   ctx: PageContext;
@@ -119,14 +119,27 @@ export function TranslatePage(props: TranslatePageProps) {
           <h2>{t.t('translate.step2')}</h2>
           <p class="muted">{t.t('translate.from', { language: localeName(languages.primary) })}</p>
           <div class="languages">
-            {languages.targets.map((locale) => (
-              <label class="language">
-                <input type="checkbox" name="locale" value={locale.id} checked />
-                <span>{localeName(locale)}</span>
-                <code>{supertextCode(locale.id, props.languageCodes)}</code>
-                {locale.visibility === 'HIDDEN' && <span class="muted">({t.t('translate.hidden')})</span>}
-              </label>
-            ))}
+            {languages.targets.map((locale) => {
+              // No Supertext language: unchecked; if chosen anyway, the job says where to map it.
+              const code = targetCodeOf(locale.id, props.languageCodes);
+              const [before, after] = splitTemplate(t.t('translate.noLanguage'), ['{settings}']);
+              return (
+                <label class="language">
+                  <input type="checkbox" name="locale" value={locale.id} checked={code !== null} />
+                  <span>{localeName(locale)}</span>
+                  {code !== null ? (
+                    <code>{code}</code>
+                  ) : (
+                    <span class="warning-text">
+                      ({before}
+                      <a href={appUrl(ctx, '/settings')}>{t.t('translate.noLanguage.settings')}</a>
+                      {after})
+                    </span>
+                  )}
+                  {locale.visibility === 'HIDDEN' && <span class="muted">({t.t('translate.hidden')})</span>}
+                </label>
+              );
+            })}
           </div>
 
           <label class="inline overwrite">

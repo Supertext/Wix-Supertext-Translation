@@ -140,7 +140,7 @@ describe('translation job', () => {
     expect(job.items.filter((item) => item.locale === 'de-CH').map((item) => item.error?.code)).toEqual(['invalid_language_pair', 'invalid_language_pair']);
     expect(job.items.filter((item) => item.locale === 'fr-CH').every((item) => item.state === 'translated')).toBe(true);
     const panel = (await (await env.request(`/api/jobs/${job.id}?locale=en`)).json()) as { html: string };
-    expect(panel.html).toContain('Supertext doesn&#39;t translate from &quot;en&quot; into &quot;xx&quot;.');
+    expect(panel.html).toContain('Supertext doesn&#39;t translate from &quot;en&quot; into &quot;xx&quot;. Choose another Supertext language for it under Settings → Languages.');
     expect(env.supertext.documents.map((document) => document.target)).toEqual(['fr-CH', 'fr-CH']);
 
     await env.store.saveSettings({ ...settings, apiKey: 'invalid' });
@@ -150,6 +150,59 @@ describe('translation job', () => {
     expect(failed.status).toBe('failed');
     expect(failed.error?.code).toBe('authentication_failure');
     expect(failed.items).toHaveLength(1);
+  });
+
+  it('sends nothing for a site language without a Supertext language and says where to map it', async () => {
+    const env = setup();
+    env.wix.locales.push({ id: 'de', languageCode: 'de', displayName: 'German' });
+    await startJob(env, { schemaId: PRODUCTS, entityIds: ['prod-hazelnut-bar'], locales: ['de', 'fr-CH'] });
+    await env.settle();
+    const job = (await env.store.latestJob(INSTANCE_ID))!;
+    expect(job.status).toBe('done');
+    expect(job.items.map((item) => [item.locale, item.state, item.error?.code])).toEqual([
+      ['fr-CH', 'translated', undefined],
+      ['de', 'failed', 'unsupported_language'],
+    ]);
+    expect(env.supertext.documents.map((document) => document.target)).toEqual(['fr-CH']);
+    for (const locale of ['en', 'de', 'fr', 'it']) {
+      const panel = (await (await env.request(`/api/jobs/${job.id}?locale=${locale}`)).json()) as { html: string };
+      expect(panel.html).toContain('German');
+    }
+    const panel = (await (await env.request(`/api/jobs/${job.id}?locale=en`)).json()) as { html: string };
+    expect(panel.html).toContain('&quot;German&quot; has no Supertext language yet, so nothing was sent. Choose its Supertext language under Settings → Languages.');
+
+    // Mapped, it is translated.
+    const settings = await env.store.getSettings(INSTANCE_ID);
+    await env.store.saveSettings({ ...settings, languageCodes: { de: 'de-AT' } });
+    await startJob(env, { schemaId: PRODUCTS, entityIds: ['prod-hazelnut-bar'], locales: ['de'] });
+    await env.settle();
+    expect(env.supertext.documents.at(-1)?.target).toBe('de-AT');
+  });
+
+  it('sends politeness only to targets that offer it', async () => {
+    const env = setup();
+    env.wix.locales.push({ id: 'en-GB', languageCode: 'en', regionCode: 'GB', displayName: 'English (UK)' });
+    const settings = await env.store.getSettings(INSTANCE_ID);
+    await env.store.saveSettings({ ...settings, tone: 'more' });
+    await startJob(env, { schemaId: PRODUCTS, entityIds: ['prod-hazelnut-bar'], locales: ['en-GB', 'de-CH'] });
+    await env.settle();
+    expect(env.supertext.documents.map((document) => [document.target, document.politeness])).toEqual([
+      ['de-CH', 'more'],
+      ['en-GB', undefined],
+    ]);
+    expect((await env.store.latestJob(INSTANCE_ID))!.items.every((item) => item.state === 'translated')).toBe(true);
+  });
+
+  it('tells the Commando Center once when Supertext rejects the key during a translation', async () => {
+    const env = setup();
+    await env.page('/');
+    await env.settle();
+    expect(env.supertext.reports.map((report) => report.event)).toEqual(['installed']);
+    const settings = await env.store.getSettings(INSTANCE_ID);
+    await env.store.saveSettings({ ...settings, apiKey: 'invalid' });
+    await startJob(env, { schemaId: PRODUCTS, entityIds: ['prod-hazelnut-bar'], locales: ['de-CH'] });
+    await env.settle();
+    expect(env.supertext.reports.at(-1)).toMatchObject({ event: 'api_key_check', api_key_check: { status: 'invalid', http_status: 401 } });
   });
 
   it('reports an unknown regional target (HTTP 404) as an unsupported language pair', async () => {
@@ -164,40 +217,113 @@ describe('translation job', () => {
 });
 
 describe('settings', () => {
-  it('saves the key, tone, publishing and language codes, and reports invalid codes', async () => {
+  it('saves the key, tone, publishing and language mapping, and reports codes Supertext does not offer', async () => {
     const env = setup();
     const form = new URLSearchParams({
       instance: env.instance,
       locale: 'fr',
       apiKey: 'Supertext-Auth-Key my-key',
       tone: 'less',
-      'code:de-CH': 'de-ch',
-      'code:fr-CH': 'french',
+      'source:en-US': '',
+      'target:de-CH': 'de-de',
+      'target:fr-CH': 'french',
+      versionReports: '1',
     });
     const response = await env.app.request('/settings', { method: 'POST', body: form, headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
     expect(response.status).toBe(303);
     expect(response.headers.get('location')).toContain('invalid=french');
     expect(response.headers.get('location')).toContain('locale=fr');
     const saved = await env.store.getSettings(INSTANCE_ID);
-    expect(saved).toMatchObject({ apiKey: 'Supertext-Auth-Key my-key', tone: 'less', publish: false, languageCodes: { 'de-CH': 'de-CH' } });
+    expect(saved).toMatchObject({
+      apiKey: 'Supertext-Auth-Key my-key',
+      tone: 'less',
+      publish: false,
+      languageCodes: { 'de-CH': 'de-DE' },
+      versionReports: true,
+    });
 
     const html = await (await env.app.request(response.headers.get('location')!)).text();
     expect(html).toContain('Paramètres Supertext');
     expect(html).toContain('french');
     expect(html).toContain('Une clé est enregistrée');
     expect(html).toMatch(/version <a href="https:\/\/github.com\/Supertext\/Wix-Supertext-Translation\/releases\/tag\/v\d+\.\d+\.\d+"/);
+    // The mapping: a select per language, the exact code as default.
+    expect(html).toMatch(/<select id="target-de-CH" name="target:de-CH">.*<option value="de-DE" selected="">/s);
+    expect(html).toContain('Même code : fr-CH');
+    expect(html).toContain('Envoyer les informations de version à Supertext');
+    await env.settle();
+  });
+
+  it('marks site languages without a Supertext language and only offers politeness where Supertext has it', async () => {
+    const env = setup();
+    env.wix.locales.push(
+      { id: 'de', languageCode: 'de', displayName: 'German' },
+      { id: 'en-GB', languageCode: 'en', regionCode: 'GB', displayName: 'English (UK)' },
+    );
+    const settings = await env.store.getSettings(INSTANCE_ID);
+    await env.store.saveSettings({ ...settings, tone: 'more' });
+    const html = await (await env.page('/settings')).text();
+    expect(html).toContain('These languages have no Supertext language yet and aren&#39;t translated until you choose one: German.');
+    expect(html).toContain('— Not translated: choose a Supertext language —');
+    expect(html).toContain('Formal or informal address isn&#39;t available for English (UK); Supertext decides there.');
+    const translate = await (await env.page('/')).text();
+    expect(translate).toMatch(/<input type="checkbox" name="locale" value="de"\/>/);
+    expect(translate).toContain('no Supertext language yet');
+    await env.settle();
+  });
+
+  it('runs the API key check when the settings are saved and shows it with the links', async () => {
+    const env = setup({ SUPERTEXT_API_KEY: '' });
+    const post = (fields: Record<string, string>) =>
+      env.app.request('/settings', {
+        method: 'POST',
+        body: new URLSearchParams({ instance: env.instance, locale: 'en', tone: 'default', versionReports: '1', ...fields }),
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      });
+    const missing = await post({});
+    let html = await (await env.app.request(missing.headers.get('location')!)).text();
+    expect(html).toContain('No API key is set yet.');
+    expect(html).toContain('<a href="https://www.supertext.com/person/en/account/signin" target="_blank" rel="noopener">supertext.com</a>');
+    expect(html).toContain('<a href="https://www.supertext.com/en/integrations/api" target="_blank" rel="noopener">supertext.com → Integrations → API</a>');
+
+    await post({ apiKey: 'invalid' });
+    html = await (await env.page('/settings')).text();
+    expect(html).toContain('Supertext rejected the API key.');
+    expect(html).toMatch(/Last API key check: .*UTC/);
+
+    await post({ apiKey: 'good-key' });
+    html = await (await env.page('/settings', { locale: 'de' })).text();
+    expect(html).toContain('API-Schlüssel geprüft: Die Verbindung zu Supertext funktioniert.');
+    await env.settle();
+
+    // installed (missing key), then settings_saved twice; the key itself is never sent.
+    expect(env.supertext.reports.map((report) => [report.event, report.api_key_check?.status])).toEqual([
+      ['installed', 'missing'],
+      ['settings_saved', 'invalid'],
+      ['settings_saved', 'ok'],
+    ]);
+    expect(JSON.stringify(env.supertext.reports)).not.toContain('good-key');
   });
 
   it('tests the connection with the entered or saved key', async () => {
     const env = setup();
-    const ok = await env.request('/api/test?locale=de', { method: 'POST', body: JSON.stringify({ apiKey: '' }) });
-    expect(await ok.json()).toEqual({ ok: true, message: 'Verbunden. Der API-Schlüssel funktioniert.' });
+    const ok = (await (await env.request('/api/test?locale=de', { method: 'POST', body: JSON.stringify({ apiKey: '' }) })).json()) as {
+      ok: boolean;
+      html: string;
+    };
+    expect(ok.ok).toBe(true);
+    expect(ok.html).toContain('API-Schlüssel geprüft: Die Verbindung zu Supertext funktioniert.');
     const bad = (await (await env.request('/api/test', { method: 'POST', body: JSON.stringify({ apiKey: 'invalid' }) })).json()) as {
       ok: boolean;
-      message: string;
+      status: string;
+      html: string;
     };
-    expect(bad.ok).toBe(false);
-    expect(bad.message).toMatch(/^Authentication failed.*Invalid API key/);
+    expect(bad).toMatchObject({ ok: false, status: 'invalid' });
+    expect(bad.html).toContain('Supertext rejected the API key.');
+    expect(bad.html).toContain('target="_blank" rel="noopener"');
+    // The saved key's check is stored; a typed key's isn't.
+    expect((await env.reporting.lastCheck(INSTANCE_ID))?.status).toBe('ok');
+    await env.settle();
   });
 
   it('stores API keys encrypted', async () => {

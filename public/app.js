@@ -139,7 +139,8 @@
       api('POST', '/api/test', { apiKey: keyInput ? keyInput.value : '' }).then(function (result) {
         test.disabled = false;
         test.textContent = label;
-        resultText.textContent = result.json.message || '';
+        // Server-rendered (escaped) key check message with its links.
+        resultText.innerHTML = result.json.html || '';
         resultText.className = result.json.ok ? 'ok' : 'failed';
       });
     });

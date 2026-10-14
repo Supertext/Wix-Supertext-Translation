@@ -44,6 +44,8 @@ async function main() {
       WIX_APP_SECRET: SECRET,
       WIX_API_BASE: wixUrl,
       SUPERTEXT_API_ENDPOINT: `${supertextUrl}/v1/`,
+      // Version reports go to the stand-in, never to the live Commando Center.
+      SUPERTEXT_REPORT_URL: `${supertextUrl}/report`,
     }),
     store,
   });
@@ -64,11 +66,16 @@ async function main() {
   await page.goto(url('/'));
   await shot('no-api-key', page.locator('.notice.warning').first());
 
+  // Language mapping: a site language Supertext has no exact code for ("Portuguese").
+  wix.locales.push({ id: 'pt', languageCode: 'pt', visibility: 'VISIBLE', displayName: 'Portuguese' });
+  await page.goto(url('/settings'));
+  await shot('settings-languages', page.locator('section.card', { has: page.locator('table.codes') }));
+  wix.locales.pop();
+
   await page.goto(url('/settings'));
   await page.fill('input[name="apiKey"]', 'Supertext-Auth-Key 0123456789abcdef');
-  await page.fill('input[name="code:fr-CH"]', 'fr-CH');
   await page.click('button.primary');
-  await page.waitForSelector('.notice.success');
+  await page.waitForSelector('.key-check[data-status="ok"]');
   await page.click('#test-button');
   await page.waitForSelector('#test-result.ok');
   await shot('settings', page.locator('main'));

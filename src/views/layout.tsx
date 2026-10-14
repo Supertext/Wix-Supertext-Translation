@@ -1,5 +1,6 @@
 import type { Child } from 'hono/jsx';
-import type { Translator } from '../i18n/index.js';
+import type { MessageKey, Translator } from '../i18n/index.js';
+import type { ApiKeyCheck } from '../supertext/index.js';
 
 /** What every page needs: the language, the signed instance to pass on, and the current page. */
 export interface PageContext {
@@ -90,4 +91,51 @@ export function splitTemplate(text: string, placeholders: string[]): string[] {
 
 export function Notice(props: { tone: 'info' | 'success' | 'warning' | 'error'; children: Child }) {
   return <div class={`notice ${props.tone}`}>{props.children}</div>;
+}
+
+/**
+ * The result of the automatic API key check (Commando Center protocol wording), with
+ * supertext.com and supertext.com → Integrations → API linked (new tab).
+ */
+export function KeyCheckMessage(props: { t: Translator; check: ApiKeyCheck; withTime?: boolean }) {
+  const { t, check } = props;
+  const key = `keyCheck.${check.status}` as MessageKey;
+  const text = t.t(key in KEY_CHECK_STATUSES ? key : 'keyCheck.error', { status: check.httpStatus ?? check.errorCode ?? '?' });
+  const parts = text.split(/(\{signup\}|\{apiKey\})/);
+  const tone = check.status === 'ok' ? 'success' : check.status === 'invalid' || check.status === 'missing' ? 'error' : 'warning';
+  return (
+    <div class={`notice ${tone} key-check`} data-status={check.status}>
+      <p>
+        {parts.map((part) =>
+          part === '{signup}' ? (
+            <a href={SIGNUP_URL} target="_blank" rel="noopener">
+              {t.t('keyCheck.signup')}
+            </a>
+          ) : part === '{apiKey}' ? (
+            <a href={API_KEY_URL} target="_blank" rel="noopener">
+              {t.t('apiKeyHelp.apiKey')}
+            </a>
+          ) : (
+            part
+          ),
+        )}
+      </p>
+      {props.withTime && <p class="muted">{t.t('keyCheck.checkedAt', { time: formatTime(check.checkedAt, t.locale) })}</p>}
+    </div>
+  );
+}
+
+const KEY_CHECK_STATUSES: Record<string, true> = {
+  'keyCheck.ok': true,
+  'keyCheck.invalid': true,
+  'keyCheck.missing': true,
+  'keyCheck.unreachable': true,
+  'keyCheck.error': true,
+};
+
+/** "14 Oct 2026, 08:15 UTC" in the interface language. */
+export function formatTime(iso: string, locale: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return `${new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' }).format(date)} UTC`;
 }

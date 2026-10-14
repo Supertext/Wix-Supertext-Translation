@@ -12,12 +12,17 @@ export interface WixStandin {
   contents: Content[];
   locales: WixLocale[];
   schemas: Schema[];
+  /** The site (App Instance API): published URL and site ID; `url: undefined` = unpublished. */
+  site: { url?: string; siteId?: string; siteDisplayName?: string };
   /** Requests received (method + path), for assertions. */
   log: string[];
 }
 
-export function createWixStandin(options: { locales?: WixLocale[]; schemas?: Schema[]; contents?: Content[] } = {}): WixStandin {
+export function createWixStandin(
+  options: { locales?: WixLocale[]; schemas?: Schema[]; contents?: Content[]; site?: WixStandin['site'] } = {},
+): WixStandin {
   const state: WixStandin = {
+    site: { ...(options.site ?? seed.site) },
     locales: structuredClone(options.locales ?? seed.locales),
     schemas: structuredClone(options.schemas ?? seed.schemas),
     contents: structuredClone(options.contents ?? seed.contents),
@@ -38,6 +43,9 @@ export function createWixStandin(options: { locales?: WixLocale[]; schemas?: Sch
       }
       if (!request.headers.get('authorization')?.startsWith('token-')) {
         return json({ message: 'Unauthorized' }, 401);
+      }
+      if (path === '/apps/v1/instance' && request.method === 'GET') {
+        return json({ instance: { instanceId: request.headers.get('authorization')!.slice(6), appName: 'Supertext' }, site: state.site });
       }
       if (path === '/locales/v2/locale/query') {
         return json({ locales: state.locales, pagingMetadata: { count: state.locales.length, hasNext: false } });

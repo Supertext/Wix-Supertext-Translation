@@ -9,7 +9,7 @@ For editors. Once the app is set up (see [INSTALLATION.md](INSTALLATION.md)), yo
 1. In your site's dashboard, open **Apps → Supertext Translation**.
 2. Under **Content type**, choose what to translate, for example **Products** (Wix Stores). The list shows the items in your site's main language and, for each language, how far they are translated: *Not translated*, *Partly translated* or *Translated*.
 3. Tick the items, or **Select all on this page**. Long lists have **Next page**.
-4. Under **Choose the languages**, tick the languages to translate into. All are ticked at first; the code next to each (e.g. `de-CH`) is the variant Supertext translates into. Languages hidden from visitors are marked *(hidden on the site)*.
+4. Under **Choose the languages**, tick the languages to translate into. All are ticked at first; the code next to each (e.g. `de-CH`) is the variant Supertext translates into. Languages hidden from visitors are marked *(hidden on the site)*. A language marked *no Supertext language yet* isn't ticked: an administrator first chooses its Supertext language under **Settings → Languages** (for example *German (Switzerland)* for a site language *German*).
 5. Click **Translate 2 items with Supertext**.
 
    ![Translate with Supertext: content type Products, Dark chocolate praline box and Milk chocolate bar with hazelnuts ticked, both Not translated in German, French and Italian (Switzerland); German and French (Switzerland) ticked, Italian not; Overwrite existing translations off; the button Translate 2 items with Supertext](images/translate-page.png)
@@ -65,7 +65,9 @@ The result shows the reason for each item and language that fails; the other one
 | --- | --- |
 | *Add your Supertext API key* | An administrator needs to enter the API key under Settings. |
 | *Authentication failed* | The API key is no longer valid; tell your administrator. |
-| *Supertext doesn't translate into …* | The language needs a Supertext code with a region; an administrator sets it under Settings → Languages. |
+| *"German" has no Supertext language yet, so nothing was sent.* | The app doesn't guess which German (Switzerland, Germany, Austria …) is meant. An administrator chooses the Supertext language for it under Settings → Languages; then translate again. The other languages are translated meanwhile. |
+| *Supertext doesn't translate from … into …* | Supertext doesn't offer that language; an administrator chooses another Supertext language for it under Settings → Languages. |
+| *Supertext doesn't offer formal or informal address for …* | An administrator sets the form of address to *Let Supertext decide* under Settings → Translation. |
 | *… too long for Wix, not saved* | The translation is longer than Wix allows for that field. Shorten it by hand in the Translation Manager. |
 | *Supertext returned 3 of 4 texts; nothing was saved for this item.* | Try that item again. |
 | *Too many requests to Supertext* | Wait a moment and click **Translate** again. Items already done show *Already translated, unchanged*. |

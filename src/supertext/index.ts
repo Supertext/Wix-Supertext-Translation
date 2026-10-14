@@ -1,15 +1,36 @@
 /**
  * Supertext for this app: the vendored Supertext SDK (src/vendor/supertext-sdk,
- * https://github.com/Supertext/Supertext-API-SDK-and-Guide) with this app's
- * defaults. The SDK handles the protocol: auth header, multipart upload,
- * language codes, HTTP 429 retries, polling, cleanup and packing texts into
- * documents.
+ * https://github.com/Supertext/Supertext-API-SDK-and-Guide; the API in its `v1`
+ * namespace) with this app's defaults. The SDK handles the protocol: auth header,
+ * multipart upload, HTTP 429 retries, polling, cleanup, packing texts into
+ * documents, the language list, the API key check and the version reports.
  */
-import { SupertextClient, type FetchLike, type Politeness } from '../vendor/supertext-sdk/index.js';
+import { SupertextClient, type FetchLike } from '../vendor/supertext-sdk/v1/index.js';
 import { VERSION } from '../version.js';
 
-export { LanguageCodes, SupertextClient, SupertextError, retryDelayMs } from '../vendor/supertext-sdk/index.js';
-export type { Politeness, SegmentInput } from '../vendor/supertext-sdk/index.js';
+export {
+  InstallationReporter,
+  Languages,
+  SOURCE_LANGUAGES,
+  SupertextClient,
+  SupertextError,
+  TARGET_LANGUAGES,
+  reporterState,
+  reportsEnabled,
+  retryDelayMs,
+} from '../vendor/supertext-sdk/v1/index.js';
+export type {
+  ApiKeyCheck,
+  ApiKeyCheckStatus,
+  FetchLike,
+  LanguageMapping,
+  Politeness,
+  ReporterOptions,
+  ReporterResult,
+  ReporterState,
+  SegmentInput,
+} from '../vendor/supertext-sdk/v1/index.js';
+export { SDK_VERSION } from '../vendor/supertext-sdk/index.js';
 
 export interface ClientSettings {
   apiKey: string;
@@ -18,12 +39,15 @@ export interface ClientSettings {
   fetch?: typeof fetch;
 }
 
+/** Appended to the SDK's User-Agent. */
+export const USER_AGENT = `Wix-Supertext-Translation/${VERSION || 'dev'}`;
+
 /** A client that identifies this app in the User-Agent. */
 export function createSupertextClient(settings: ClientSettings): SupertextClient {
   return new SupertextClient(settings.apiKey, {
     ...(settings.endpoint ? { baseUrl: settings.endpoint } : {}),
     ...(settings.fetch ? { fetch: settings.fetch as FetchLike } : {}),
-    userAgent: `Wix-Supertext-Translation/${VERSION || 'dev'}`,
+    userAgent: USER_AGENT,
   });
 }
 

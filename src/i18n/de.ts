@@ -32,6 +32,8 @@ export const de: Messages = {
   "translate.step2": "2. Sprachen auswählen",
   "translate.from": "Übersetzt wird aus {language}, der Hauptsprache Ihrer Website.",
   "translate.hidden": "auf der Website ausgeblendet",
+  "translate.noLanguage": "noch keine Supertext-Sprache: wählen Sie eine unter {settings}",
+  "translate.noLanguage.settings": "Einstellungen → Sprachen",
   "translate.overwrite": "Vorhandene Übersetzungen überschreiben",
   "translate.overwriteHint": "Ohne diese Option bleiben bereits übersetzte Felder unverändert.",
   "translate.overwriteWarning":
@@ -60,8 +62,7 @@ export const de: Messages = {
 
   "settings.heading": "Supertext-Einstellungen",
   "settings.saved": "Einstellungen gespeichert.",
-  "settings.invalidCodes":
-    "Gespeichert, außer diesen Sprachcodes, die keine gültigen Codes wie de-CH sind: {codes}.",
+  "settings.invalidCodes": "Gespeichert, außer diesen Sprachcodes, die Supertext nicht anbietet: {codes}.",
   "settings.apiKey.heading": "Supertext-API-Schlüssel",
   "settings.apiKey.label": "API-Schlüssel",
   "settings.apiKey.placeholder": "Fügen Sie Ihren Supertext-API-Schlüssel ein",
@@ -71,19 +72,46 @@ export const de: Messages = {
   "settings.apiKey.remove": "Gespeicherten Schlüssel entfernen",
   "settings.test": "Verbindung testen",
   "settings.testing": "Wird getestet …",
-  "settings.testOk": "Verbunden. Der API-Schlüssel funktioniert.",
+  "keyCheck.ok": "API-Schlüssel geprüft: Die Verbindung zu Supertext funktioniert.",
+  "keyCheck.invalid":
+    "Supertext hat den API-Schlüssel abgelehnt. Prüfen Sie, ob Sie den ganzen Schlüssel kopiert haben, oder erstellen Sie einen neuen unter {apiKey} (erfordert die Rolle Admin). Noch kein Supertext-Konto? Erstellen Sie eines auf {signup}.",
+  "keyCheck.missing":
+    "Es ist noch kein API-Schlüssel eingetragen. Noch kein Supertext-Konto? Erstellen Sie eines auf {signup}. Ihren API-Schlüssel erstellen Sie unter {apiKey} (erfordert die Rolle Admin).",
+  "keyCheck.unreachable":
+    "Der API-Schlüssel konnte nicht geprüft werden, weil Supertext nicht erreichbar ist. Die Einstellungen sind gespeichert; prüfen Sie ihn später erneut.",
+  "keyCheck.error":
+    "Der API-Schlüssel konnte nicht geprüft werden: Supertext hat mit einem Fehler geantwortet ({status}). Die Einstellungen sind gespeichert; prüfen Sie ihn später erneut.",
+  "keyCheck.signup": "supertext.com",
+  "keyCheck.checkedAt": "Letzte Prüfung des API-Schlüssels: {time}",
   "settings.languages.heading": "Sprachen",
   "settings.languages.text":
-    "Der Sprachcode, in den Supertext für jede Sprache Ihrer Website übersetzt. Supertext benötigt eine Region, zum Beispiel de-CH für Schweizerdeutsch oder fr-FR für das Französisch Frankreichs.",
+    "Die Supertext-Sprache, in die jede Sprache Ihrer Website übersetzt wird (bei der Hauptsprache: aus der übersetzt wird). Eine Website-Sprache, deren Code Supertext unverändert anbietet (zum Beispiel de-CH oder es), wird ohne Auswahl verwendet; wählen Sie für jede andere Sprache eine aus, zum Beispiel Deutsch (Schweiz) oder Deutsch (Deutschland) für eine Website-Sprache „Deutsch“.",
   "settings.languages.main": "Hauptsprache",
+  "settings.languages.site": "Sprache der Website",
+  "settings.languages.supertext": "Supertext-Sprache",
+  "settings.languages.exact": "Gleicher Code: {code}",
+  "settings.languages.choose": "— Wird nicht übersetzt: Supertext-Sprache wählen —",
+  "settings.languages.missing": "Keine Supertext-Sprache",
+  "settings.languages.unmapped":
+    "Diese Sprachen haben noch keine Supertext-Sprache und werden erst übersetzt, wenn Sie eine wählen: {languages}.",
   "settings.style.heading": "Übersetzung",
   "settings.style.label": "Anrede",
   "settings.style.default": "Supertext entscheiden lassen",
   "settings.style.more": "Formell (z. B. „Sie“)",
   "settings.style.less": "Informell (z. B. „du“)",
+  "settings.style.noPoliteness":
+    "Formelle oder informelle Anrede ist für {languages} nicht verfügbar; dort entscheidet Supertext.",
   "settings.publish": "Übersetzungen als bereit zur Veröffentlichung markieren",
   "settings.publishHint":
     "Aus: Die Übersetzungen warten im Übersetzungsmanager, bis Sie sie zur Veröffentlichung freigeben.",
+  "settings.reports.heading": "Versionsinformationen",
+  "settings.reports.label": "Versionsinformationen an Supertext senden",
+  "settings.reports.help":
+    "Sendet die URL der Website sowie die Versionen dieser App und der Laufzeitumgebung an Supertext, wenn Sie diese Einstellungen speichern und nach einem Update. So sieht der Supertext-Support, welche Version Sie einsetzen. Es werden keine Inhalte, kein API-Schlüssel und keine Personendaten übertragen.",
+  "settings.reports.forcedOff":
+    "Auf dem Server der App für alle Websites ausgeschaltet (SUPERTEXT_VERSION_REPORTS).",
+  "settings.reports.forcedOn":
+    "Auf dem Server der App für alle Websites eingeschaltet (SUPERTEXT_VERSION_REPORTS).",
   "settings.save": "Speichern",
   "settings.about.heading": "Info",
   "settings.about.version": "Supertext Translation für Wix, Version {version}",
@@ -104,9 +132,13 @@ export const de: Messages = {
   "error.service_unavailable": "Der Supertext-Dienst ist derzeit nicht verfügbar.",
   "error.unexpected_status": "Supertext hat mit HTTP {status} geantwortet.",
   "error.invalid_language_pair":
-    "Supertext übersetzt nicht aus „{source}“ in „{target}“. Legen Sie den Supertext-Code für diese Sprache unter Einstellungen → Sprachen fest, mit einer Region (z. B. de-CH, fr-FR, en-US).",
+    "Supertext übersetzt nicht aus „{source}“ in „{target}“. Wählen Sie unter Einstellungen → Sprachen eine andere Supertext-Sprache dafür.",
   "error.invalid_language_pair_unknown":
-    "Supertext übersetzt nicht in diese Sprache. Legen Sie den Supertext-Code für diese Sprache unter Einstellungen → Sprachen fest, mit einer Region (z. B. de-CH, fr-FR, en-US).",
+    "Supertext übersetzt nicht in diese Sprache. Wählen Sie unter Einstellungen → Sprachen eine andere Supertext-Sprache dafür.",
+  "error.unsupported_language":
+    "„{language}“ hat noch keine Supertext-Sprache, deshalb wurde nichts gesendet. Wählen Sie die Supertext-Sprache dafür unter Einstellungen → Sprachen.",
+  "error.unsupported_feature":
+    "Supertext bietet für „{target}“ keine formelle oder informelle Anrede an. Wählen Sie „Supertext entscheiden lassen“ unter Einstellungen → Übersetzung.",
   "error.incomplete_response": "Die Supertext-Übersetzung ist unvollständig zurückgekommen; für dieses Element wurde nichts gespeichert.",
   "error.sourceMissing": "Der Originaltext dieses Elements wurde nicht gefunden.",
   "error.schemaMissing": "Dieser Inhaltstyp existiert auf der Website nicht mehr.",

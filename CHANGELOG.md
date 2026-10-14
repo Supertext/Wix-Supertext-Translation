@@ -4,6 +4,13 @@ All notable changes to Supertext Translation for Wix.
 
 ## Unreleased
 
+- Supertext SDK 0.2.1 (API in its `v1` namespace; `scripts/vendor-sdk.sh` copies the whole source tree).
+- **Languages: no more guessed regions.** A site language is translated into the Supertext language chosen for it under Settings → Languages (now a list of the languages Supertext offers, for the main language too), else into its own code if Supertext offers exactly that (`de-CH`, `es`), else not at all: the item says *"German" has no Supertext language yet* and where to choose one (`unsupported_language`), and nothing is sent. Sites with bare languages such as *German* (`de`), which were sent as `de-DE` before, need a choice under Settings → Languages. The settings page lists the languages without a Supertext language, and the translate page leaves them unticked. Only codes Supertext offers can be saved.
+- Formal/informal address is sent only for languages where Supertext offers it (not for English, Swiss German, Romansh, Albanian, Serbian); the settings page names them. New message for `unsupported_feature`.
+- **Version information for Supertext support** (Commando Center): new setting *Send version information to Supertext* (on by default; `SUPERTEXT_VERSION_REPORTS=0` turns it off for all sites). Sends the site URL, the app, Node.js and SDK versions and the API key check result when the settings are saved and after updates; never content or the key. No callback/ping (hosted app).
+- **Automatic API key check:** saving the settings checks the key and shows the result with its time (*API key checked …*, *Supertext rejected the API key …* with the account and API key links); *Test connection* shows the same messages. A translation rejected with 401/403 updates the stored result.
+- Docs: language mapping, version information, new troubleshooting entries; new screenshot of the language settings, settings screenshot updated.
+
 - Uses the Supertext SDK (TypeScript, vendored in `src/vendor/supertext-sdk`) for all calls to Supertext instead of its own client. Supertext error messages now use the SDK's error codes; a language code entered without region in the settings (e.g. `de`) is sent with its default region (`de-DE`) instead of being rejected by Supertext.
 
 - Fixed: a target language Supertext doesn't know is now reported as an unsupported language pair (was: *The requested Supertext resource was not found*).

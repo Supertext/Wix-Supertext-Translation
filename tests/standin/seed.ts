@@ -11,6 +11,13 @@ import type { Content, RichContent, RicosDecoration, RicosNode, Schema, WixLocal
 export const STORES = '1380b703-ce81-ff05-f115-39571d94dfcd';
 export const BLOG = '14bcded7-0066-7c35-14d7-466cb3f09103';
 
+/** The sample site (App Instance API → site). Invented, never a real site. */
+export const site = {
+  url: 'https://www.chocolate-demo.example/',
+  siteId: '9b2c4d6e-0000-4000-8000-00000000c0c0',
+  siteDisplayName: 'Swiss chocolate shop',
+};
+
 export const locales: WixLocale[] = [
   { id: 'en-US', languageCode: 'en', regionCode: 'US', primaryLocale: true, visibility: 'VISIBLE', displayName: 'English' },
   { id: 'de-CH', languageCode: 'de', regionCode: 'CH', visibility: 'VISIBLE', displayName: 'German (Switzerland)' },

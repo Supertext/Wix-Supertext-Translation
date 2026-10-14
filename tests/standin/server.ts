@@ -5,7 +5,10 @@
  *
  *   npm run standin
  *   WIX_APP_ID=app WIX_APP_SECRET=standin-secret WIX_API_BASE=http://127.0.0.1:8766 \
- *   SUPERTEXT_API_ENDPOINT=http://127.0.0.1:8765/v1/ SUPERTEXT_API_KEY=any npm run dev
+ *   SUPERTEXT_API_ENDPOINT=http://127.0.0.1:8765/v1/ SUPERTEXT_API_KEY=any \
+ *   SUPERTEXT_REPORT_URL=http://127.0.0.1:8765/report npm run dev
+ *
+ * (SUPERTEXT_REPORT_URL keeps version reports away from the live Commando Center.)
  */
 import { serve } from '@hono/node-server';
 import { signInstance } from '../../src/auth/instance.js';
@@ -26,5 +29,5 @@ const instance = signInstance(
   { instanceId: '7c3e1d2a-5b4f-4e6a-9c8d-0f1e2d3c4b5a', uid: 'standin-user', permissions: 'OWNER', siteOwnerId: 'standin-user' },
   secret,
 );
-console.log(`Stand-in Wix API on http://127.0.0.1:${wixPort}, stand-in Supertext API on http://127.0.0.1:${supertextPort}/v1/`);
+console.log(`Stand-in Wix API on http://127.0.0.1:${wixPort}, stand-in Supertext API on http://127.0.0.1:${supertextPort}/v1/ (reports: /report)`);
 console.log(`Dashboard page: ${appUrl}/?instance=${instance}&locale=en`);

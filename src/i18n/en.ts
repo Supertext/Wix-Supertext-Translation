@@ -35,6 +35,8 @@ export const en = {
   "translate.step2": "2. Choose the languages",
   "translate.from": "Translating from {language}, your site's main language.",
   "translate.hidden": "hidden on the site",
+  "translate.noLanguage": "no Supertext language yet: choose one under {settings}",
+  "translate.noLanguage.settings": "Settings → Languages",
   "translate.overwrite": "Overwrite existing translations",
   "translate.overwriteHint": "Without this option, fields that are translated already are kept.",
   "translate.overwriteWarning":
@@ -66,7 +68,7 @@ export const en = {
   // Settings page
   "settings.heading": "Supertext settings",
   "settings.saved": "Settings saved.",
-  "settings.invalidCodes": "Saved, except these language codes, which aren't valid codes like de-CH: {codes}.",
+  "settings.invalidCodes": "Saved, except these language codes, which Supertext doesn't offer: {codes}.",
   "settings.apiKey.heading": "Supertext API key",
   "settings.apiKey.label": "API key",
   "settings.apiKey.placeholder": "Paste your Supertext API key",
@@ -75,19 +77,44 @@ export const en = {
   "settings.apiKey.remove": "Remove the saved key",
   "settings.test": "Test connection",
   "settings.testing": "Testing…",
-  "settings.testOk": "Connected. The API key works.",
+  "keyCheck.ok": "API key checked: the connection to Supertext works.",
+  "keyCheck.invalid":
+    "Supertext rejected the API key. Check that you copied the whole key, or generate a new one at {apiKey} (requires the Admin role). No Supertext account yet? Create one at {signup}.",
+  "keyCheck.missing":
+    "No API key is set yet. No Supertext account yet? Create one at {signup}. Generate your API key at {apiKey} (requires the Admin role).",
+  "keyCheck.unreachable":
+    "The API key couldn't be checked because Supertext can't be reached. The settings are saved; check again later.",
+  "keyCheck.error":
+    "The API key couldn't be checked: Supertext answered with an error ({status}). The settings are saved; check again later.",
+  "keyCheck.signup": "supertext.com",
+  "keyCheck.checkedAt": "Last API key check: {time}",
   "settings.languages.heading": "Languages",
   "settings.languages.text":
-    "The language code Supertext translates into for each of your site's languages. Supertext needs a region, for example de-CH for Swiss German or fr-FR for French as spoken in France.",
+    "The Supertext language each of your site's languages is translated into (for the main language: translated from). A site language whose code Supertext offers as it is (for example de-CH or es) is used without a choice; choose one for every other language, for example German (Switzerland) or German (Germany) for a site language “German”.",
   "settings.languages.main": "main language",
+  "settings.languages.site": "Site language",
+  "settings.languages.supertext": "Supertext language",
+  "settings.languages.exact": "Same code: {code}",
+  "settings.languages.choose": "— Not translated: choose a Supertext language —",
+  "settings.languages.missing": "No Supertext language",
+  "settings.languages.unmapped":
+    "These languages have no Supertext language yet and aren't translated until you choose one: {languages}.",
   "settings.style.heading": "Translation",
   "settings.style.label": "Form of address",
   "settings.style.default": "Let Supertext decide",
   "settings.style.more": "Formal (e.g. German “Sie”)",
   "settings.style.less": "Informal (e.g. German “du”)",
+  "settings.style.noPoliteness":
+    "Formal or informal address isn't available for {languages}; Supertext decides there.",
   "settings.publish": "Mark translations as ready to publish",
   "settings.publishHint":
     "Off: translations wait in the Translation Manager until you mark them ready to publish.",
+  "settings.reports.heading": "Version information",
+  "settings.reports.label": "Send version information to Supertext",
+  "settings.reports.help":
+    "Sends the site URL and the versions of this app and the runtime to Supertext when you save these settings and after an update, so Supertext support can see which version you run. No content, no API key and no personal data are sent.",
+  "settings.reports.forcedOff": "Turned off for all sites on the app's server (SUPERTEXT_VERSION_REPORTS).",
+  "settings.reports.forcedOn": "Turned on for all sites on the app's server (SUPERTEXT_VERSION_REPORTS).",
   "settings.save": "Save",
   "settings.about.heading": "About",
   "settings.about.version": "Supertext Translation for Wix, version {version}",
@@ -109,9 +136,13 @@ export const en = {
   "error.service_unavailable": "The Supertext service is currently unavailable.",
   "error.unexpected_status": "Supertext answered with HTTP {status}.",
   "error.invalid_language_pair":
-    "Supertext doesn't translate from \"{source}\" into \"{target}\". Set the Supertext code for this language under Settings → Languages, with a region (e.g. de-CH, fr-FR, en-US).",
+    "Supertext doesn't translate from \"{source}\" into \"{target}\". Choose another Supertext language for it under Settings → Languages.",
   "error.invalid_language_pair_unknown":
-    "Supertext doesn't translate into this language. Set the Supertext code for this language under Settings → Languages, with a region (e.g. de-CH, fr-FR, en-US).",
+    "Supertext doesn't translate into this language. Choose another Supertext language for it under Settings → Languages.",
+  "error.unsupported_language":
+    "\"{language}\" has no Supertext language yet, so nothing was sent. Choose its Supertext language under Settings → Languages.",
+  "error.unsupported_feature":
+    "Supertext doesn't offer formal or informal address for \"{target}\". Choose \"Let Supertext decide\" under Settings → Translation.",
   "error.incomplete_response": "The Supertext translation came back incomplete; nothing was saved for this item.",
   "error.sourceMissing": "The original text of this item was not found.",
   "error.schemaMissing": "This content type no longer exists on the site.",

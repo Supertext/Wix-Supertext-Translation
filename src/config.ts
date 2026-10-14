@@ -15,6 +15,10 @@ export interface Config {
   databaseUrl: string;
   /** Key for encrypting stored API keys; falls back to a key derived from the app secret. */
   encryptionKey: string;
+  /** SUPERTEXT_VERSION_REPORTS as set ('' = each site's own setting; 0/false/off/no turns reports off for all sites). */
+  versionReports: string;
+  /** SUPERTEXT_REPORT_URL: the Commando Center's report URL (tests, stand-in); '' = the SDK's default (live center). */
+  reportUrl: string;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -29,5 +33,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     supertextEndpoint: env.SUPERTEXT_API_ENDPOINT ?? '',
     databaseUrl: env.DATABASE_URL ?? '',
     encryptionKey: env.APP_ENCRYPTION_KEY ?? '',
+    versionReports: env.SUPERTEXT_VERSION_REPORTS ?? '',
+    reportUrl: env.SUPERTEXT_REPORT_URL ?? '',
   };
 }

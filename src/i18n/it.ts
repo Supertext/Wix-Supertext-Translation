@@ -33,6 +33,8 @@ export const it: Messages = {
   "translate.step2": "2. Scelga le lingue",
   "translate.from": "Si traduce da {language}, la lingua principale del Suo sito.",
   "translate.hidden": "nascosta sul sito",
+  "translate.noLanguage": "ancora nessuna lingua Supertext: ne scelga una in {settings}",
+  "translate.noLanguage.settings": "Impostazioni → Lingue",
   "translate.overwrite": "Sovrascrivi le traduzioni esistenti",
   "translate.overwriteHint": "Senza questa opzione, i campi già tradotti restano invariati.",
   "translate.overwriteWarning":
@@ -61,8 +63,7 @@ export const it: Messages = {
 
   "settings.heading": "Impostazioni Supertext",
   "settings.saved": "Impostazioni salvate.",
-  "settings.invalidCodes":
-    "Salvato, tranne questi codici lingua, che non sono codici validi come de-CH: {codes}.",
+  "settings.invalidCodes": "Salvato, tranne questi codici lingua, che Supertext non offre: {codes}.",
   "settings.apiKey.heading": "Chiave API Supertext",
   "settings.apiKey.label": "Chiave API",
   "settings.apiKey.placeholder": "Incolli la Sua chiave API Supertext",
@@ -72,19 +73,45 @@ export const it: Messages = {
   "settings.apiKey.remove": "Rimuovi la chiave salvata",
   "settings.test": "Verifica connessione",
   "settings.testing": "Verifica in corso…",
-  "settings.testOk": "Connesso. La chiave API funziona.",
+  "keyCheck.ok": "Chiave API verificata: la connessione a Supertext funziona.",
+  "keyCheck.invalid":
+    "Supertext ha rifiutato la chiave API. Verifichi di aver copiato l'intera chiave oppure ne generi una nuova su {apiKey} (richiede il ruolo Admin). Non ha ancora un account Supertext? Ne crei uno su {signup}.",
+  "keyCheck.missing":
+    "Non è ancora stata inserita alcuna chiave API. Non ha ancora un account Supertext? Ne crei uno su {signup}. Generi la Sua chiave API su {apiKey} (richiede il ruolo Admin).",
+  "keyCheck.unreachable":
+    "Non è stato possibile verificare la chiave API perché Supertext non è raggiungibile. Le impostazioni sono salvate; riprovi più tardi.",
+  "keyCheck.error":
+    "Non è stato possibile verificare la chiave API: Supertext ha risposto con un errore ({status}). Le impostazioni sono salvate; riprovi più tardi.",
+  "keyCheck.signup": "supertext.com",
+  "keyCheck.checkedAt": "Ultima verifica della chiave API: {time}",
   "settings.languages.heading": "Lingue",
   "settings.languages.text":
-    "Il codice lingua in cui Supertext traduce per ciascuna lingua del Suo sito. Supertext ha bisogno di una regione, per esempio de-CH per il tedesco svizzero o fr-FR per il francese di Francia.",
+    "La lingua Supertext in cui viene tradotta ciascuna lingua del Suo sito (per la lingua principale: da cui si traduce). Una lingua del sito il cui codice Supertext offre così com'è (per esempio de-CH o es) viene usata senza scelta; ne scelga una per ogni altra lingua, per esempio tedesco (Svizzera) o tedesco (Germania) per una lingua del sito «tedesco».",
   "settings.languages.main": "lingua principale",
+  "settings.languages.site": "Lingua del sito",
+  "settings.languages.supertext": "Lingua Supertext",
+  "settings.languages.exact": "Stesso codice: {code}",
+  "settings.languages.choose": "— Non tradotta: scelga una lingua Supertext —",
+  "settings.languages.missing": "Nessuna lingua Supertext",
+  "settings.languages.unmapped":
+    "Queste lingue non hanno ancora una lingua Supertext e non vengono tradotte finché non ne sceglie una: {languages}.",
   "settings.style.heading": "Traduzione",
   "settings.style.label": "Forma di cortesia",
   "settings.style.default": "Lascia decidere a Supertext",
   "settings.style.more": "Formale (p. es. «Lei»)",
   "settings.style.less": "Informale (p. es. «tu»)",
+  "settings.style.noPoliteness":
+    "Il registro formale o informale non è disponibile per {languages}; lì decide Supertext.",
   "settings.publish": "Segna le traduzioni come pronte per la pubblicazione",
   "settings.publishHint":
     "Disattivato: le traduzioni restano in Gestione traduzioni finché non le segna come pronte per la pubblicazione.",
+  "settings.reports.heading": "Informazioni sulla versione",
+  "settings.reports.label": "Inviare le informazioni sulla versione a Supertext",
+  "settings.reports.help":
+    "Invia a Supertext l'URL del sito e le versioni di questa app e dell'ambiente di esecuzione quando salva queste impostazioni e dopo un aggiornamento. In questo modo l'assistenza Supertext vede quale versione utilizza. Non vengono trasmessi contenuti, chiavi API né dati personali.",
+  "settings.reports.forcedOff":
+    "Disattivato per tutti i siti sul server dell'app (SUPERTEXT_VERSION_REPORTS).",
+  "settings.reports.forcedOn": "Attivato per tutti i siti sul server dell'app (SUPERTEXT_VERSION_REPORTS).",
   "settings.save": "Salva",
   "settings.about.heading": "Informazioni",
   "settings.about.version": "Supertext Translation per Wix, versione {version}",
@@ -105,9 +132,13 @@ export const it: Messages = {
   "error.service_unavailable": "Il servizio Supertext non è al momento disponibile.",
   "error.unexpected_status": "Supertext ha risposto con HTTP {status}.",
   "error.invalid_language_pair":
-    "Supertext non traduce da «{source}» a «{target}». Imposti il codice Supertext di questa lingua in Impostazioni → Lingue, con una regione (p. es. de-CH, fr-FR, en-US).",
+    "Supertext non traduce da «{source}» a «{target}». Scelga un'altra lingua Supertext per questa lingua in Impostazioni → Lingue.",
   "error.invalid_language_pair_unknown":
-    "Supertext non traduce in questa lingua. Imposti il codice Supertext di questa lingua in Impostazioni → Lingue, con una regione (p. es. de-CH, fr-FR, en-US).",
+    "Supertext non traduce in questa lingua. Scelga un'altra lingua Supertext per questa lingua in Impostazioni → Lingue.",
+  "error.unsupported_language":
+    "«{language}» non ha ancora una lingua Supertext, quindi non è stato inviato nulla. Scelga la sua lingua Supertext in Impostazioni → Lingue.",
+  "error.unsupported_feature":
+    "Supertext non offre il registro formale o informale per «{target}». Scelga «Lascia decidere a Supertext» in Impostazioni → Traduzione.",
   "error.incomplete_response": "La traduzione Supertext è tornata incompleta; per questo elemento non è stato salvato nulla.",
   "error.sourceMissing": "Il testo originale di questo elemento non è stato trovato.",
   "error.schemaMissing": "Questo tipo di contenuto non esiste più sul sito.",

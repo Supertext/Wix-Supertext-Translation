@@ -1,9 +1,18 @@
 import type { ErrorInfo } from '../i18n/error.js';
 import type { SiteSettings } from '../store/store.js';
-import { defaultSupertextCode } from '../translation/language-codes.js';
+import type { ApiKeyCheck } from '../supertext/index.js';
+import {
+  exactTarget,
+  languageName,
+  SOURCE_LANGUAGES,
+  sourceCodeOf,
+  supportsPoliteness,
+  TARGET_LANGUAGES,
+  targetCodeOf,
+} from '../translation/language-codes.js';
 import { localeName, type SiteLanguages } from '../translation/site.js';
 import { releaseUrl, VERSION } from '../version.js';
-import { ApiKeyHelp, Layout, Notice, splitTemplate, type PageContext } from './layout.js';
+import { ApiKeyHelp, KeyCheckMessage, Layout, Notice, splitTemplate, type PageContext } from './layout.js';
 
 export interface SettingsPageProps {
   ctx: PageContext;
@@ -12,6 +21,10 @@ export interface SettingsPageProps {
   serverKey: boolean;
   languages?: SiteLanguages;
   languagesError?: ErrorInfo;
+  /** The latest automatic API key check (after a save, *Test connection*, a rejected translation). */
+  keyCheck?: ApiKeyCheck | null;
+  /** "Send version information to Supertext": effective value, and whether the server decides. */
+  reports: { enabled: boolean; forced: boolean };
   saved?: boolean;
   invalidCodes?: string;
 }
@@ -21,6 +34,16 @@ export function SettingsPage(props: SettingsPageProps) {
   const { t } = ctx;
   const heading = t.t('settings.heading');
   const [versionBefore, versionAfter] = splitTemplate(t.t('settings.about.version'), ['{version}']);
+  const mapping = settings.languageCodes;
+  const unmapped = languages ? languages.targets.filter((locale) => targetCodeOf(locale.id, mapping) === null) : [];
+  const noPoliteness =
+    languages && settings.tone !== 'default'
+      ? languages.targets.filter((locale) => {
+          const code = targetCodeOf(locale.id, mapping);
+          return code !== null && !supportsPoliteness(code);
+        })
+      : [];
+  const sourceMissing = languages ? sourceCodeOf(languages.primary.id, mapping) === null : false;
 
   return (
     <Layout ctx={ctx} title={heading}>
@@ -53,12 +76,13 @@ export function SettingsPage(props: SettingsPageProps) {
               {t.t('settings.apiKey.remove')}
             </label>
           )}
+          {props.keyCheck && <KeyCheckMessage t={t} check={props.keyCheck} withTime />}
           <div class="actions">
             <button type="button" id="test-button" data-testing={t.t('settings.testing')}>
               {t.t('settings.test')}
             </button>
-            <span id="test-result" role="status"></span>
           </div>
+          <div id="test-result" role="status"></div>
         </section>
 
         <section class="card">
@@ -78,41 +102,69 @@ export function SettingsPage(props: SettingsPageProps) {
             {t.t('settings.publish')}
           </label>
           <p class="help">{t.t('settings.publishHint')}</p>
+          {noPoliteness.length > 0 && (
+            <p class="help">{t.t('settings.style.noPoliteness', { languages: noPoliteness.map(localeName).join(', ') })}</p>
+          )}
         </section>
 
         <section class="card">
           <h2>{t.t('settings.languages.heading')}</h2>
           <p class="help">{t.t('settings.languages.text')}</p>
           {props.languagesError && <Notice tone="error">{t.error(props.languagesError)}</Notice>}
+          {languages && (unmapped.length > 0 || sourceMissing) && (
+            <Notice tone="warning">
+              {t.t('settings.languages.unmapped', {
+                languages: [...(sourceMissing ? [languages.primary] : []), ...unmapped].map(localeName).join(', '),
+              })}
+            </Notice>
+          )}
           {languages && (
             <table class="codes">
-              <tbody>
+              <thead>
                 <tr>
-                  <td>
-                    {localeName(languages.primary)} <span class="muted">({t.t('settings.languages.main')})</span>
-                  </td>
-                  <td>
-                    <code>{languages.primary.languageCode || languages.primary.id}</code>
-                  </td>
+                  <th>{t.t('settings.languages.site')}</th>
+                  <th>{t.t('settings.languages.supertext')}</th>
                 </tr>
+              </thead>
+              <tbody>
+                <LanguageRow
+                  ctx={ctx}
+                  name={`${localeName(languages.primary)} (${t.t('settings.languages.main')})`}
+                  field={`source:${languages.primary.id}`}
+                  value={mapping[languages.primary.id] ?? ''}
+                  exact={sourceCodeOf(languages.primary.id, {})}
+                  options={SOURCE_LANGUAGES.map((language) => language.code)}
+                />
                 {languages.targets.map((locale) => (
-                  <tr>
-                    <td>
-                      <label for={`code-${locale.id}`}>{localeName(locale)}</label>
-                    </td>
-                    <td>
-                      <input
-                        id={`code-${locale.id}`}
-                        name={`code:${locale.id}`}
-                        value={settings.languageCodes[locale.id] ?? ''}
-                        placeholder={defaultSupertextCode(locale.id)}
-                        size={10}
-                      />
-                    </td>
-                  </tr>
+                  <LanguageRow
+                    ctx={ctx}
+                    name={localeName(locale)}
+                    field={`target:${locale.id}`}
+                    value={mapping[locale.id] ?? ''}
+                    exact={exactTarget(locale.id)}
+                    options={TARGET_LANGUAGES.map((language) => language.code)}
+                  />
                 ))}
               </tbody>
             </table>
+          )}
+        </section>
+
+        <section class="card">
+          <h2>{t.t('settings.reports.heading')}</h2>
+          <label class="inline">
+            <input
+              type="checkbox"
+              name="versionReports"
+              value="1"
+              checked={props.reports.enabled}
+              disabled={props.reports.forced}
+            />
+            {t.t('settings.reports.label')}
+          </label>
+          <p class="help">{t.t('settings.reports.help')}</p>
+          {props.reports.forced && (
+            <p class="muted">{t.t(props.reports.enabled ? 'settings.reports.forcedOn' : 'settings.reports.forcedOff')}</p>
           )}
         </section>
 
@@ -134,5 +186,45 @@ export function SettingsPage(props: SettingsPageProps) {
         </p>
       </section>
     </Layout>
+  );
+}
+
+/**
+ * One site language and its Supertext language. Empty = the locale's own code if Supertext
+ * offers it exactly ("Same code: de-CH"), else the language isn't translated.
+ */
+function LanguageRow(props: { ctx: PageContext; name: string; field: string; value: string; exact: string | null; options: string[] }) {
+  const { t } = props.ctx;
+  const id = props.field.replace(/[^\w-]/g, '-');
+  const missing = !props.value && props.exact === null;
+  return (
+    <tr>
+      <td>
+        <label for={id}>{props.name}</label>
+        {missing && (
+          <>
+            {' '}
+            <span class="badge none">{t.t('settings.languages.missing')}</span>
+          </>
+        )}
+      </td>
+      <td>
+        <select id={id} name={props.field}>
+          <option value="" selected={!props.value}>
+            {props.exact !== null ? t.t('settings.languages.exact', { code: props.exact }) : t.t('settings.languages.choose')}
+          </option>
+          {props.options.map((code) => (
+            <option value={code} selected={props.value === code}>
+              {languageName(code, t.locale)} ({code})
+            </option>
+          ))}
+          {props.value && !props.options.includes(props.value) && (
+            <option value={props.value} selected>
+              {props.value}
+            </option>
+          )}
+        </select>
+      </td>
+    </tr>
   );
 }

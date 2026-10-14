@@ -1,7 +1,9 @@
 import { signInstance } from '../src/auth/instance.js';
 import { createApp } from '../src/app.js';
 import { loadConfig } from '../src/config.js';
+import { Reporting } from '../src/reporting.js';
 import { MemoryStore } from '../src/store/store.js';
+import { WixClient } from '../src/wix/client.js';
 import { createSupertextStandin } from './standin/supertext.js';
 import { createWixStandin } from './standin/wix.js';
 
@@ -26,15 +28,28 @@ export function setup(env: Record<string, string> = {}) {
     WIX_API_BASE: 'https://wixapis.test',
     SUPERTEXT_API_ENDPOINT: 'https://supertext.test/v1/',
     SUPERTEXT_API_KEY: 'server-key',
+    // Never the live Commando Center: reports go to the stand-in (supertext.reports).
+    SUPERTEXT_REPORT_URL: 'https://supertext.test/report',
     ...env,
   });
   const jobs: Promise<unknown>[] = [];
-  const app = createApp({ config, store, fetch: fetchFn, onJob: (done) => jobs.push(done) });
+  const reporting = new Reporting({
+    config,
+    store,
+    fetch: fetchFn,
+    siteInfo: (instanceId) =>
+      new WixClient({ appId: config.wixAppId, appSecret: config.wixAppSecret, instanceId, apiBase: config.wixApiBase, fetch: fetchFn }).siteInfo(),
+  });
+  const app = createApp({ config, store, fetch: fetchFn, reporting, onJob: (done) => jobs.push(done) });
   const instance = signInstance({ instanceId: INSTANCE_ID, uid: 'user-1', permissions: 'OWNER', siteOwnerId: 'user-1' }, APP_SECRET);
   const request = (path: string, init: RequestInit = {}) =>
     app.request(path, { ...init, headers: { 'X-Wix-Instance': instance, ...(init.headers ?? {}) } });
   const page = (path: string, params: Record<string, string> = {}) =>
     app.request(`${path}?${new URLSearchParams({ instance, locale: 'en', ...params })}`);
-  const settle = () => Promise.all(jobs.splice(0));
-  return { app, wix, supertext, store, config, instance, request, page, settle };
+  /** Waits for the jobs, then for the background reports they started. */
+  const settle = async () => {
+    await Promise.all(jobs.splice(0));
+    await reporting.settle();
+  };
+  return { app, wix, supertext, store, config, reporting, instance, request, page, settle };
 }

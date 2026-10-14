@@ -32,6 +32,8 @@ const describe = (field: Content['fields'][string]) =>
       : Object.keys(field).filter((key) => !['published', 'updatedBy', 'id'].includes(key)).join(', ') || '(empty)';
 
 async function main() {
+  const site = await wix.siteInfo().catch((error: unknown) => ({ error: error instanceof Error ? error.message : String(error) }));
+  console.log(`Site (App Instance API, the version reports' site URL): ${JSON.stringify(site)}\n`);
   const locales = await wix.locales();
   console.log('Locales:');
   for (const locale of locales) {
