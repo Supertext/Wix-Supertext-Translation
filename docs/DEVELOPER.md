@@ -10,7 +10,7 @@ src/
   app.ts                  routes (Hono): dashboard pages, API for the page's script, webhooks, health
   config.ts               environment variables
   version.ts              version from package.json, release link
-  reporting.ts            Commando Center: version reports and the API key check per site (SDK's InstallationReporter)
+  reporting.ts            Commando Center: version reports and the API key check per site (Plugin Health's InstallationReporter, the SDK's key check)
   auth/instance.ts        verifies Wix's signed app instance (HMAC-SHA256 with the app secret)
   wix/client.ts           Wix REST client: OAuth token, Locales, Translation Schema, Translation Content
   wix/ricos.ts            Ricos rich content ↔ HTML segments
@@ -22,6 +22,7 @@ src/
     language-codes.ts     Wix locale → Supertext code (the site's mapping, else an exact code; SDK's Languages)
   supertext/index.ts      the Supertext SDK with this app's defaults (User-Agent, stand-in endpoint)
   vendor/supertext-sdk/   the Supertext SDK for TypeScript, vendored (don't edit; see "Supertext SDK")
+  vendor/supertext-plugin-health/  Supertext Plugin Health for TypeScript, vendored (don't edit; see "Supertext Plugin Health")
   store/
     store.ts              Store interface, in-memory store, AES-GCM for API keys
     postgres.ts           PostgreSQL store (creates its database and tables)
@@ -30,6 +31,7 @@ src/
 public/                   app.js (selection, start, polling, test connection), app.css
 scripts/probe.ts          read-only look at a real site's Wix Multilingual data
 scripts/vendor-sdk.sh         refreshes src/vendor/supertext-sdk from the SDK repository
+scripts/vendor-plugin-health.sh  refreshes src/vendor/supertext-plugin-health from the Commando Center repository
 tests/                    Vitest tests; standin/ (Wix and Supertext stand-ins, sample site); docs/screenshots.ts
 ```
 
@@ -85,7 +87,7 @@ All of this is done by the **Supertext SDK** (next section): header `Authorizati
 
 ### Supertext SDK
 
-The app uses the TypeScript SDK from [Supertext-API-SDK-and-Guide](https://github.com/Supertext/Supertext-API-SDK-and-Guide) (`sdk/typescript`, 0.2.1), the shared client of all Supertext plugins. It isn't on npm yet, so it is **vendored** in `src/vendor/supertext-sdk/` (its source tree as it is: the version-neutral `index.ts` and `version.ts`, the API in `v1/`; with `LICENSE`, `COMMIT` = the SDK commit, `VERSION` and a `README.md`). Don't edit those files: fix the SDK upstream, then
+The app uses the TypeScript SDK from [Supertext-API-SDK-and-Guide](https://github.com/Supertext/Supertext-API-SDK-and-Guide) (`sdk/typescript`, 0.3.0), the shared client of all Supertext plugins. It provides the API client and the API key check (`checkApiKey()`, `apiKeyFingerprint()`, `SDK_VERSION`); version reports come from Supertext Plugin Health (next section). It isn't on npm yet, so it is **vendored** in `src/vendor/supertext-sdk/` (its source tree as it is: the version-neutral `index.ts` and `version.ts`, the API in `v1/`; with `LICENSE`, `COMMIT` = the SDK commit, `VERSION` and a `README.md`). Don't edit those files: fix the SDK upstream, then
 
 ```bash
 scripts/vendor-sdk.sh [commit-or-branch]   # default: main; SDK_DIR=/path/to/clone uses a local clone as it is
@@ -93,6 +95,15 @@ npm run typecheck && npm test
 ```
 
 The app reaches the SDK only through `src/supertext/index.ts` (imports from `v1/`), so moving to the npm package later means replacing the folder with `npm install supertext-sdk` and changing that import to `supertext-sdk/v1`.
+
+### Supertext Plugin Health
+
+[Supertext Plugin Health](https://github.com/Supertext/Commando-Center-Supertext-Translation/tree/main/plugin-health) (`plugin-health/typescript` in the Commando Center repository, 0.1.0) sends the version reports and the API key check result to the Supertext Commando Center (`InstallationReporter`, `reportsEnabled()`, `reporterState()`; its ping answer isn't used, the app is hosted). It has no dependencies and doesn't call Supertext: `src/reporting.ts` passes it `SDK_VERSION` and a key checker built on the SDK (`createSupertextClient(…).checkApiKey()` and `apiKeyFingerprint`). It is **vendored** in `src/vendor/supertext-plugin-health/` (`index.ts`, with `LICENSE`, `COMMIT`, `VERSION` and a `README.md`) and compiled with the app. Don't edit those files: fix it in Commando-Center-Supertext-Translation/plugin-health, then
+
+```bash
+scripts/vendor-plugin-health.sh <tag>   # e.g. plugin-health-v0.1.0; default: main; PLUGIN_HEALTH_DIR=/path/to/clone uses a local clone as it is
+npm run typecheck && npm test
+```
 
 ## Language codes
 
@@ -110,9 +121,9 @@ The stand-in (`tests/standin/supertext.ts`) accepts only the listed target codes
 
 ## Commando Center: version reports and the API key check
 
-Protocol: [Commando-Center-Supertext-Translation](https://github.com/Supertext/Commando-Center-Supertext-Translation) → `docs/DEVELOPER.md` → *Report protocol*. The SDK's `InstallationReporter`, `checkApiKey()` and `reportsEnabled()` implement it; `src/reporting.ts` (`Reporting`) gives it what the app knows about each site, runs one reporter action and stores the new state, never throwing.
+Protocol: [Commando-Center-Supertext-Translation](https://github.com/Supertext/Commando-Center-Supertext-Translation) → `docs/DEVELOPER.md` → *Report protocol*. Plugin Health's `InstallationReporter` and `reportsEnabled()` and the SDK's `checkApiKey()` implement it; `src/reporting.ts` (`Reporting`) gives it what the app knows about each site, runs one reporter action and stores the new state, never throwing.
 
-- **One installation per Wix site.** The reporter's state (the SDK's JSON: reported versions, last failure, the latest key check with the key's fingerprint) lives per instance ID in `site_settings.reporter_state` (`Store.getReporterState` / `saveReporterState`; added to existing databases with `ALTER TABLE … ADD COLUMN IF NOT EXISTS` on start). Calls per site are serialized and read the site's settings when they run.
+- **One installation per Wix site.** The reporter's state (Plugin Health's JSON, the same format the SDK 0.2 reporter stored, so the switch sent no new `installed`: reported versions, last failure, the latest key check with the key's fingerprint) lives per instance ID in `site_settings.reporter_state` (`Store.getReporterState` / `saveReporterState`; added to existing databases with `ALTER TABLE … ADD COLUMN IF NOT EXISTS` on start). Calls per site are serialized and read the site's settings when they run.
 - **Setting:** `SiteSettings.versionReports` (*Send version information to Supertext*, on by default; column `version_reports`), on the settings page. `SUPERTEXT_VERSION_REPORTS` on the server (`0/false/off/no`, `1/true/on/yes`) decides for all sites (`reportsEnabled()`); the checkbox is then disabled with a note. `SUPERTEXT_REPORT_URL` sends reports elsewhere (tests, CI and screenshots use the stand-in's `POST /report`).
 - **Report fields:** `site_url` = the site's published URL from Wix (`GET /apps/v1/instance` → `site.url`), else, for an unpublished site, `https://manage.wix.com/dashboard/<siteId>` (stable, and where Supertext staff find the site); looked up at most every 6 hours per site. If Wix can't be asked, the key is still checked but nothing is reported. Plugin `Wix-Supertext-Translation` with the version from `package.json`; system `Wix` (no version: Wix is a hosted platform); runtime Node.js; no `callback`: **a hosted app has no ping endpoint**.
 - **When:**
@@ -182,7 +193,7 @@ The service **Wix** in the Railway project *supertext-cms-demos* builds this rep
 | `APP_ENCRYPTION_KEY` | random secret for stored API keys; optional (falls back to the app secret) |
 | `SUPERTEXT_API_KEY` | optional default key (the demo site) |
 | `SUPERTEXT_VERSION_REPORTS` | optional: `0` turns version reports off for all sites (default: each site's setting, on) |
-| `SUPERTEXT_REPORT_URL` | never in production (the SDK's default is the live Commando Center); tests point it at a stand-in |
+| `SUPERTEXT_REPORT_URL` | never in production (Plugin Health's default is the live Commando Center); tests point it at a stand-in |
 
 Never commit these values.
 

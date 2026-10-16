@@ -4,6 +4,7 @@ All notable changes to Supertext Translation for Wix.
 
 ## Unreleased
 
+- Version reports and the API key check result now use Supertext Plugin Health 0.1.0 (bundled in `src/vendor/supertext-plugin-health`); Supertext SDK updated to 0.3.0 (commit `f7bd414`). No change for sites: settings and stored state stay as they are.
 - Supertext SDK 0.2.1 (API in its `v1` namespace; `scripts/vendor-sdk.sh` copies the whole source tree).
 - **Languages: no more guessed regions.** A site language is translated into the Supertext language chosen for it under Settings → Languages (now a list of the languages Supertext offers, for the main language too), else into its own code if Supertext offers exactly that (`de-CH`, `es`), else not at all: the item says *"German" has no Supertext language yet* and where to choose one (`unsupported_language`), and nothing is sent. Sites with bare languages such as *German* (`de`), which were sent as `de-DE` before, need a choice under Settings → Languages. The settings page lists the languages without a Supertext language, and the translate page leaves them unticked. Only codes Supertext offers can be saved.
 - Formal/informal address is sent only for languages where Supertext offers it (not for English, Swiss German, Romansh, Albanian, Serbian); the settings page names them. New message for `unsupported_feature`.

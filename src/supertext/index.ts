@@ -3,20 +3,19 @@
  * https://github.com/Supertext/Supertext-API-SDK-and-Guide; the API in its `v1`
  * namespace) with this app's defaults. The SDK handles the protocol: auth header,
  * multipart upload, HTTP 429 retries, polling, cleanup, packing texts into
- * documents, the language list, the API key check and the version reports.
+ * documents, the language list and the API key check. Version reports are Supertext
+ * Plugin Health's (src/vendor/supertext-plugin-health, see ../reporting.ts).
  */
 import { SupertextClient, type FetchLike } from '../vendor/supertext-sdk/v1/index.js';
 import { VERSION } from '../version.js';
 
 export {
-  InstallationReporter,
+  apiKeyFingerprint,
   Languages,
   SOURCE_LANGUAGES,
   SupertextClient,
   SupertextError,
   TARGET_LANGUAGES,
-  reporterState,
-  reportsEnabled,
   retryDelayMs,
 } from '../vendor/supertext-sdk/v1/index.js';
 export type {
@@ -25,9 +24,6 @@ export type {
   FetchLike,
   LanguageMapping,
   Politeness,
-  ReporterOptions,
-  ReporterResult,
-  ReporterState,
   SegmentInput,
 } from '../vendor/supertext-sdk/v1/index.js';
 export { SDK_VERSION } from '../vendor/supertext-sdk/index.js';

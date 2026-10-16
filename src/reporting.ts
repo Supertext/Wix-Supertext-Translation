@@ -1,9 +1,11 @@
 /**
  * Version reports to the Supertext Commando Center and the automatic API key check
  * (Commando-Center-Supertext-Translation → docs/DEVELOPER.md → Report protocol).
- * The protocol is the SDK's (`InstallationReporter`); this file only gives it what
- * the app knows about each site and keeps the reporter's state per site instance
- * (`Store.getReporterState` / `saveReporterState`, the `reporter_state` column).
+ * The protocol is Supertext Plugin Health's (`InstallationReporter`, bundled in
+ * src/vendor/supertext-plugin-health); the key check is the Supertext SDK's
+ * (`checkApiKey()`). This file only gives them what the app knows about each site
+ * and keeps the reporter's state per site instance (`Store.getReporterState` /
+ * `saveReporterState`, the `reporter_state` column).
  *
  * A hosted app: one installation per Wix site, so one state per instance ID.
  * No ping endpoint and no callback URL. The site URL is the site's published URL
@@ -15,16 +17,16 @@
  * logged or sent (only its check result).
  */
 import type { Config } from './config.js';
+import { apiKeyFingerprint, createSupertextClient, SDK_VERSION, type ApiKeyCheck } from './supertext/index.js';
 import {
   InstallationReporter,
   reporterState,
   reportsEnabled,
-  USER_AGENT,
-  type ApiKeyCheck,
   type FetchLike,
+  type KeyChecker,
   type ReporterOptions,
   type ReporterResult,
-} from './supertext/index.js';
+} from './vendor/supertext-plugin-health/index.js';
 import type { SiteSettings, Store } from './store/store.js';
 import { VERSION } from './version.js';
 import type { SiteInfo } from './wix/client.js';
@@ -50,10 +52,16 @@ export interface ReportingDeps {
   siteInfo: (instanceId: string) => Promise<SiteInfo>;
   /** HTTP for the key check and the report (tests); the global fetch by default. */
   fetch?: typeof fetch;
-  /** Tests: options for the SDK reporter (clock …). */
+  /** Tests: options for the Plugin Health reporter (clock …). */
   reporterOverrides?: Partial<ReporterOptions>;
   log?: (message: string) => void;
 }
+
+/**
+ * A reporter result with the key check typed as the SDK's (the checks come from the SDK's
+ * `checkApiKey()` or are `invalid` after a 401/403, so the status is one of the SDK's).
+ */
+export type ReportResult = Omit<ReporterResult, 'check'> & { check: ApiKeyCheck | null };
 
 /** Site URLs are looked up at most every 6 hours per site. */
 const SITE_URL_TTL_MS = 6 * 3600_000;
@@ -84,7 +92,7 @@ export class Reporting {
   /** The latest stored key check of a site (settings page). */
   async lastCheck(instanceId: string): Promise<ApiKeyCheck | null> {
     try {
-      return reporterState(await this.deps.store.getReporterState(instanceId)).keyCheck;
+      return reporterState(await this.deps.store.getReporterState(instanceId)).keyCheck as ApiKeyCheck | null;
     } catch {
       return null;
     }
@@ -96,7 +104,7 @@ export class Reporting {
    * the settings when it runs (a background task never acts on a key that was replaced since).
    * Never throws.
    */
-  run(instanceId: string, action: ReportAction, httpStatus?: number): Promise<ReporterResult | null> {
+  run(instanceId: string, action: ReportAction, httpStatus?: number): Promise<ReportResult | null> {
     const previous = this.queues.get(instanceId) ?? Promise.resolve();
     const task = previous.then(async () => {
       try {
@@ -117,7 +125,7 @@ export class Reporting {
         if (result.event) {
           this.deps.log?.(`Supertext: version report ${result.event} for instance ${instanceId}: ${result.sent ? 'sent' : 'not sent'}`);
         }
-        return result;
+        return result as ReportResult;
       } catch (error) {
         this.deps.log?.(`Supertext: version report skipped: ${error instanceof Error ? error.message : String(error)}`);
         return null;
@@ -150,16 +158,22 @@ export class Reporting {
       siteUrl: siteUrl ?? '',
       plugin: { name: PLUGIN_NAME, version: VERSION || '0.0.0' },
       system: { name: SYSTEM_NAME },
+      sdkVersion: SDK_VERSION,
       callbackUrl: null, // hosted app: no ping endpoint
+      keyChecker: this.keyChecker(),
       ...(config.reportUrl ? { reportUrl: config.reportUrl } : {}),
-      clientOptions: {
-        ...(config.supertextEndpoint ? { baseUrl: config.supertextEndpoint } : {}),
-        ...(this.deps.fetch ? { fetch: this.deps.fetch as FetchLike } : {}),
-        userAgent: USER_AGENT,
-      },
       ...(this.deps.fetch ? { fetch: this.deps.fetch as FetchLike } : {}),
       ...this.deps.reporterOverrides,
     });
+  }
+
+  /** The SDK's key check (`GET features`) with the app's client (endpoint, User-Agent). */
+  private keyChecker(): KeyChecker {
+    const { config } = this.deps;
+    return {
+      check: (apiKey) => createSupertextClient({ apiKey, endpoint: config.supertextEndpoint, fetch: this.deps.fetch }).checkApiKey(),
+      fingerprint: apiKeyFingerprint,
+    };
   }
 
   private async siteUrl(instanceId: string): Promise<string | null> {

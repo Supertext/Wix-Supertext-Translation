@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { PLUGIN_NAME, Reporting, siteUrlOf } from '../src/reporting.js';
 import { MemoryStore } from '../src/store/store.js';
+import { SDK_VERSION } from '../src/supertext/index.js';
 import { createSupertextStandin } from './standin/supertext.js';
 import { INSTANCE_ID, setup } from './helpers.js';
 
@@ -66,6 +67,7 @@ describe('reporting glue', () => {
       runtime: { name: 'Node.js' },
       api_key_configured: true,
       api_key_check: { status: 'ok', http_status: 200 },
+      sdk_version: SDK_VERSION,
     });
     expect(report.plugin.version).toMatch(/^\d+\.\d+\.\d+$/);
     expect(report.callback).toBeUndefined();
