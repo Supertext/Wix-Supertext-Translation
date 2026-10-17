@@ -28,7 +28,7 @@ src/
     postgres.ts           PostgreSQL store (creates its database and tables)
   i18n/                   en, de, fr, it messages; translator; LocalizedError
   views/                  server-rendered pages (hono/jsx): translate, job panel, settings
-public/                   app.js (selection, start, polling, test connection), app.css
+public/                   app.js (selection, start, polling, test connection), app.css (Supertext's look, see "Look and feel"), supertext-logo.svg, favicon.svg, fonts/ (Inter, SIL Open Font License)
 scripts/probe.ts          read-only look at a real site's Wix Multilingual data
 scripts/vendor-sdk.sh         refreshes src/vendor/supertext-sdk from the SDK repository
 scripts/vendor-plugin-health.sh  refreshes src/vendor/supertext-plugin-health from the Commando Center repository
@@ -73,6 +73,10 @@ Every block whose children are all `TEXT` nodes (paragraphs, headings, the parag
 ## Interface languages
 
 English, German, French and Italian, following the `locale` parameter Wix adds to the dashboard page (the browser's language, e.g. `de`), then `Accept-Language`, then English. Strings live in `src/i18n/{en,de,fr,it}.ts`; `en.ts` defines the keys and the others are typed `Messages`, so a missing key fails `npm run typecheck`, and `tests/i18n.test.ts` checks placeholders, URLs, "Supertext" and "Wix". **Every new or changed string gets all four languages in the same commit**, formal address (Sie, vous, Lei), Wix's own terms (*Übersetzungsmanager*, *Gestionnaire de traduction*, *Gestione traduzioni*; *Website*, *langue principale*), French ` ` before `? ! : ;`. Errors are `LocalizedError`s (English message for logs, `code` → `error.<code>`); Supertext errors use the SDK's codes as they are (`error.authentication_failure`, `error.quota_exceeded` …; `errorInfo()` in `src/i18n/error.ts` turns a `SupertextError` into the message data, and an `invalid_language_pair` without the codes into `invalid_language_pair_unknown`). The job panel is rendered on the server in the requested language.
+
+## Look and feel
+
+The pages follow supertext.com, like Supertext's HubSpot app: a compact deep-green header bar (`#003230`, rounded bottom corners, 50 px high because it sits right below Wix's own dashboard bar) with Supertext's mint logo (`public/supertext-logo.svg`, the website's own SVG) and pill-shaped tabs, the warm off-white background (`#f7f5f3`), deep-green text and outlines, mint (`#78ffaf`) for the main action, the active tab, selected languages and finished translations, light grey lines (`#dfe1df`), and pill-shaped buttons. Text is set in Inter, bundled in `public/fonts/` (variable font, Latin and Latin Extended; SIL Open Font License in `Inter-LICENSE.txt`), so no font is loaded from elsewhere. Supertext's heading font (ABC Ginto Nord) is licensed and not bundled; headings use Inter Bold. The colours are CSS variables at the top of `public/app.css`; keyboard focus shows a deep-green outline. Below 640 px the header, cards and buttons tighten and the item table scrolls inside its card. The favicon is the logo's S mark on deep green.
 
 ## Supertext API protocol
 
