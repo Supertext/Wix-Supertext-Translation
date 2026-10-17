@@ -86,11 +86,10 @@ export const it: Messages = {
   "keyCheck.checkedAt": "Ultima verifica della chiave API: {time}",
   "settings.languages.heading": "Lingue",
   "settings.languages.text":
-    "La lingua Supertext in cui viene tradotta ciascuna lingua del Suo sito (per la lingua principale: da cui si traduce). Una lingua del sito il cui codice Supertext offre così com'è (per esempio de-CH o es) viene usata senza scelta; ne scelga una per ogni altra lingua, per esempio tedesco (Svizzera) o tedesco (Germania) per una lingua del sito «tedesco».",
+    "La lingua Supertext in cui viene tradotta ciascuna lingua del Suo sito (per la lingua principale: da cui si traduce). Ogni elenco preseleziona la scelta ovvia: lo stesso codice se Supertext lo offre (per esempio de-CH o es), altrimenti il valore predefinito abituale (tedesco → tedesco (Germania), inglese → inglese (Stati Uniti), cinese (Taiwan) → cinese (tradizionale)). La modifichi dove le serve un’altra variante, per esempio tedesco (Svizzera). Le lingue senza una scelta ovvia (per esempio inglese (Irlanda) o svizzero tedesco) sono contrassegnate con «Nessuna lingua Supertext» e vengono tradotte solo quando ne sceglie una.",
   "settings.languages.main": "lingua principale",
   "settings.languages.site": "Lingua del sito",
   "settings.languages.supertext": "Lingua Supertext",
-  "settings.languages.exact": "Stesso codice: {code}",
   "settings.languages.choose": "— Non tradotta: scelga una lingua Supertext —",
   "settings.languages.missing": "Nessuna lingua Supertext",
   "settings.languages.unmapped":

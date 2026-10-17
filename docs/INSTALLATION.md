@@ -73,20 +73,39 @@ All settings are per site, in **Supertext Translation → Settings**.
 | Test connection | – | Checks the key (entered or saved) with Supertext, without translating anything. Saving the settings runs the same check; the page shows the last result and when it ran. |
 | Form of address | Let Supertext decide | *Formal* (German "Sie", French "vous") or *Informal* ("du", "tu"). Sent only for languages where Supertext offers it; for English, Swiss German, Romansh, Albanian and Serbian Supertext decides (the page names them). |
 | Mark translations as ready to publish | On | On: translations go live on the site's language versions right away. Off: they wait in the Translation Manager until you mark them ready to publish. |
-| Languages | the site language's own code, if Supertext offers it | The Supertext language each site language is translated into (and, for the main language, translated from). See [Languages](#languages). |
+| Languages | the site language's own code if Supertext offers it, else its default (`de` → `de-DE`) | The Supertext language each site language is translated into (and, for the main language, translated from). See [Languages](#languages). |
 | Send version information to Supertext | On | See [Version information](#version-information). |
 
 The settings page also shows the app's version, linked to its release notes.
 
 ### Languages
 
-Supertext offers each language in one exact form: `de-CH`, `de-DE`, `de-AT`, `fr-CH`, `fr-FR`, `it-CH`, `it-IT`, `en-US`, `en-GB`, `pt-BR`, `pt-PT` (with region), `zh-Hans`, `zh-Hant`, `sr-Latn`, `sr-Cyrl`, Swiss German (Zurich, Bern), and without region for all others (`es`, `nl`, `ja` …). The app never guesses a region:
+Supertext offers each language in one exact form: `de-CH`, `de-DE`, `de-AT`, `fr-CH`, `fr-FR`, `it-CH`, `it-IT`, `en-US`, `en-GB`, `pt-BR`, `pt-PT` (with region), `zh-Hans`, `zh-Hant`, `sr-Latn`, `sr-Cyrl`, Swiss German (Zurich, Bern), and without region for all others (`es`, `nl`, `ja` …).
 
-- A site language whose code is one of these (for example *German (Switzerland)*, `de-CH`, or *Spanish*, `es`) is used as it is: its select shows *Same code: de-CH*.
-- Every other language needs a choice. Wix sites often have languages without region (*German*, `de`): choose *German (Switzerland)*, *German (Germany)* or *German (Austria)* for it. Until you do, the page lists it as *No Supertext language*, it isn't translated, and editors who choose it get a message that sends them here.
-- For the main language you choose the language Supertext translates from (`en`, `de` …); its own code is used if Supertext has it (`en-US` → `en`).
+Under **Settings → Languages** every site language has a combo box with Supertext's languages, shown as *Name (code)* in your dashboard language. Each one is preselected with the saved choice, else the obvious one:
 
-<img src="images/settings-languages.png" alt="Languages on the Supertext settings page: English (main language) with Same code: en, German, French and Italian (Switzerland) with their same codes, and Portuguese marked No Supertext language with the choice Not translated: choose a Supertext language, under the warning These languages have no Supertext language yet and aren't translated until you choose one: Portuguese." width="720">
+- A site language whose code Supertext offers as it is (for example *German (Switzerland)*, `de-CH`, or *Spanish*, `es`) is preselected with that code.
+- Otherwise the usual default, if there is one:
+
+  | Site language | Preselected Supertext language |
+  | --- | --- |
+  | `de` | `de-DE` |
+  | `en` | `en-US` |
+  | `fr` | `fr-FR` |
+  | `it` | `it-IT` |
+  | `pt` | `pt-PT` |
+  | `zh`, `zh-CN`, `zh-SG` | `zh-Hans` |
+  | `zh-TW`, `zh-HK`, `zh-MO` | `zh-Hant` |
+  | `sr`, `sr-Latn-RS` | `sr-Latn` |
+  | a region of a language Supertext offers without region (`es-ES`, `es-419`, `nl-NL`, `nb-NO`) | that language (`es`, `nl`, `nb`) |
+
+  A language nobody has chosen for is translated into this default too, so Wix sites with bare languages (*German*, `de`) work right away. Choose another variant where you need it, for example *German (Switzerland)*.
+- Languages without an obvious choice (for example `en-IE`, `de-LI`, `fr-BE`, `sr-RS` or Swiss German `gsw`) show *— Not translated: choose a Supertext language —* and are marked *No Supertext language*. They aren't translated until you choose one, and editors who choose them get a message that sends them here.
+- For the main language you choose the language Supertext translates from (`en`, `de` …); its own code is preselected if Supertext has it (`en-US` → `en`).
+
+**Save** stores the selected code for every language (existing choices stay as they were). Only codes from the list can be saved. The mapping is per site; there is no server-wide override.
+
+<img src="images/settings-languages.png" alt="Languages on the Supertext settings page: a combo box per site language, English (main language) preselected with English (en), German, French and Italian (Switzerland) with their own codes, Portuguese preselected with Portuguese (Portugal) (pt-PT), and Swiss German marked No Supertext language with the choice Not translated: choose a Supertext language, under the warning These languages have no Supertext language yet and aren't translated until you choose one: Swiss German." width="720">
 
 ### Version information
 

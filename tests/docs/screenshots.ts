@@ -66,11 +66,14 @@ async function main() {
   await page.goto(url('/'));
   await shot('no-api-key', page.locator('.notice.warning').first());
 
-  // Language mapping: a site language Supertext has no exact code for ("Portuguese").
-  wix.locales.push({ id: 'pt', languageCode: 'pt', visibility: 'VISIBLE', displayName: 'Portuguese' });
+  // Language mapping: a language with a default ("Portuguese" → pt-PT) and one without ("Swiss German").
+  wix.locales.push(
+    { id: 'pt', languageCode: 'pt', visibility: 'VISIBLE', displayName: 'Portuguese' },
+    { id: 'gsw', languageCode: 'gsw', visibility: 'VISIBLE', displayName: 'Swiss German' },
+  );
   await page.goto(url('/settings'));
   await shot('settings-languages', page.locator('section.card', { has: page.locator('table.codes') }));
-  wix.locales.pop();
+  wix.locales.splice(-2);
 
   await page.goto(url('/settings'));
   await page.fill('input[name="apiKey"]', 'Supertext-Auth-Key 0123456789abcdef');

@@ -2,13 +2,14 @@ import type { ErrorInfo } from '../i18n/error.js';
 import type { SiteSettings } from '../store/store.js';
 import type { ApiKeyCheck } from '../supertext/index.js';
 import {
-  exactTarget,
   languageName,
   SOURCE_LANGUAGES,
   sourceCodeOf,
+  suggestSource,
+  suggestTarget,
   supportsPoliteness,
-  TARGET_LANGUAGES,
   targetCodeOf,
+  targetOptions,
 } from '../translation/language-codes.js';
 import { localeName, type SiteLanguages } from '../translation/site.js';
 import { releaseUrl, VERSION } from '../version.js';
@@ -132,7 +133,7 @@ export function SettingsPage(props: SettingsPageProps) {
                   name={`${localeName(languages.primary)} (${t.t('settings.languages.main')})`}
                   field={`source:${languages.primary.id}`}
                   value={mapping[languages.primary.id] ?? ''}
-                  exact={sourceCodeOf(languages.primary.id, {})}
+                  suggested={suggestSource(languages.primary.id)}
                   options={SOURCE_LANGUAGES.map((language) => language.code)}
                 />
                 {languages.targets.map((locale) => (
@@ -141,8 +142,8 @@ export function SettingsPage(props: SettingsPageProps) {
                     name={localeName(locale)}
                     field={`target:${locale.id}`}
                     value={mapping[locale.id] ?? ''}
-                    exact={exactTarget(locale.id)}
-                    options={TARGET_LANGUAGES.map((language) => language.code)}
+                    suggested={suggestTarget(locale.id)}
+                    options={targetOptions()}
                   />
                 ))}
               </tbody>
@@ -190,18 +191,22 @@ export function SettingsPage(props: SettingsPageProps) {
 }
 
 /**
- * One site language and its Supertext language. Empty = the locale's own code if Supertext
- * offers it exactly ("Same code: de-CH"), else the language isn't translated.
+ * One site language and its Supertext language: a combo box with Supertext's codes, the saved
+ * code selected, else the suggestion (the exact code, else the SDK default: de → de-DE), else
+ * "— choose —" (not translated until a code is chosen).
  */
-function LanguageRow(props: { ctx: PageContext; name: string; field: string; value: string; exact: string | null; options: string[] }) {
+function LanguageRow(props: { ctx: PageContext; name: string; field: string; value: string; suggested: string | null; options: string[] }) {
   const { t } = props.ctx;
   const id = props.field.replace(/[^\w-]/g, '-');
-  const missing = !props.value && props.exact === null;
+  const selected = props.value || props.suggested || '';
+  const options = props.options
+    .map((code) => ({ code, name: languageName(code, t.locale) }))
+    .sort((a, b) => a.name.localeCompare(b.name, t.locale));
   return (
     <tr>
       <td>
         <label for={id}>{props.name}</label>
-        {missing && (
+        {!selected && (
           <>
             {' '}
             <span class="badge none">{t.t('settings.languages.missing')}</span>
@@ -210,12 +215,14 @@ function LanguageRow(props: { ctx: PageContext; name: string; field: string; val
       </td>
       <td>
         <select id={id} name={props.field}>
-          <option value="" selected={!props.value}>
-            {props.exact !== null ? t.t('settings.languages.exact', { code: props.exact }) : t.t('settings.languages.choose')}
-          </option>
-          {props.options.map((code) => (
-            <option value={code} selected={props.value === code}>
-              {languageName(code, t.locale)} ({code})
+          {!selected && (
+            <option value="" selected>
+              {t.t('settings.languages.choose')}
+            </option>
+          )}
+          {options.map((option) => (
+            <option value={option.code} selected={selected === option.code}>
+              {option.name} ({option.code})
             </option>
           ))}
           {props.value && !props.options.includes(props.value) && (

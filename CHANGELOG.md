@@ -4,6 +4,7 @@ All notable changes to Supertext Translation for Wix.
 
 ## Unreleased
 
+- **Languages: obvious defaults.** A site language nobody chose a Supertext language for is translated into its usual variant (`de` → `de-DE`, `en` → `en-US`, `fr` → `fr-FR`, `it` → `it-IT`, `pt` → `pt-PT`, `zh-TW` → `zh-Hant`, `es-ES` → `es` …) instead of being skipped, so it is ticked on the translate page. Each combo box under Settings → Languages is preselected with the saved choice, else that suggestion; only languages without one (`en-IE`, `de-LI`, `gsw`, `sr-RS` …) are still flagged *No Supertext language*. Saved choices stay as they are. Supertext SDK 0.4.0 (commit `6aaad33`).
 - **Supertext's look:** deep-green header with the Supertext logo, warm off-white background, mint for the main action, the active tab and finished translations, pill-shaped buttons and language choices, Inter bundled with the app (no external fonts), and the Supertext favicon. Screenshots updated.
 - Version reports and the API key check result now use Supertext Plugin Health 0.1.0 (bundled in `src/vendor/supertext-plugin-health`); Supertext SDK updated to 0.3.0 (commit `f7bd414`). No change for sites: settings and stored state stay as they are.
 - Supertext SDK 0.2.1 (API in its `v1` namespace; `scripts/vendor-sdk.sh` copies the whole source tree).

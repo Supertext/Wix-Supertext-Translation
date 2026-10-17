@@ -90,11 +90,10 @@ export const en = {
   "keyCheck.checkedAt": "Last API key check: {time}",
   "settings.languages.heading": "Languages",
   "settings.languages.text":
-    "The Supertext language each of your site's languages is translated into (for the main language: translated from). A site language whose code Supertext offers as it is (for example de-CH or es) is used without a choice; choose one for every other language, for example German (Switzerland) or German (Germany) for a site language “German”.",
+    "The Supertext language each of your site's languages is translated into (for the main language: translated from). Each list preselects the obvious choice: the same code if Supertext offers it (for example de-CH or es), else the usual default (German → German (Germany), English → English (US), Chinese (Taiwan) → Chinese (Traditional)). Change it where you need another variant, for example German (Switzerland). Languages without an obvious choice (for example English (Ireland) or Swiss German) are marked “No Supertext language” and aren't translated until you pick one.",
   "settings.languages.main": "main language",
   "settings.languages.site": "Site language",
   "settings.languages.supertext": "Supertext language",
-  "settings.languages.exact": "Same code: {code}",
   "settings.languages.choose": "— Not translated: choose a Supertext language —",
   "settings.languages.missing": "No Supertext language",
   "settings.languages.unmapped":

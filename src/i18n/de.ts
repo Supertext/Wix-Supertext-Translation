@@ -85,11 +85,10 @@ export const de: Messages = {
   "keyCheck.checkedAt": "Letzte Prüfung des API-Schlüssels: {time}",
   "settings.languages.heading": "Sprachen",
   "settings.languages.text":
-    "Die Supertext-Sprache, in die jede Sprache Ihrer Website übersetzt wird (bei der Hauptsprache: aus der übersetzt wird). Eine Website-Sprache, deren Code Supertext unverändert anbietet (zum Beispiel de-CH oder es), wird ohne Auswahl verwendet; wählen Sie für jede andere Sprache eine aus, zum Beispiel Deutsch (Schweiz) oder Deutsch (Deutschland) für eine Website-Sprache „Deutsch“.",
+    "Die Supertext-Sprache, in die jede Sprache Ihrer Website übersetzt wird (bei der Hauptsprache: aus der übersetzt wird). Jede Liste ist mit der naheliegenden Wahl vorbelegt: dem gleichen Code, wenn Supertext ihn anbietet (zum Beispiel de-CH oder es), sonst dem üblichen Standard (Deutsch → Deutsch (Deutschland), Englisch → Englisch (USA), Chinesisch (Taiwan) → Chinesisch (traditionell)). Ändern Sie sie, wo Sie eine andere Variante brauchen, zum Beispiel Deutsch (Schweiz). Sprachen ohne naheliegende Wahl (zum Beispiel Englisch (Irland) oder Schweizerdeutsch) sind mit „Keine Supertext-Sprache“ markiert und werden erst übersetzt, wenn Sie eine Sprache wählen.",
   "settings.languages.main": "Hauptsprache",
   "settings.languages.site": "Sprache der Website",
   "settings.languages.supertext": "Supertext-Sprache",
-  "settings.languages.exact": "Gleicher Code: {code}",
   "settings.languages.choose": "— Wird nicht übersetzt: Supertext-Sprache wählen —",
   "settings.languages.missing": "Keine Supertext-Sprache",
   "settings.languages.unmapped":
