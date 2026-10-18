@@ -57,7 +57,7 @@ Open **Supertext Translation → Settings** in the dashboard:
 
 No Supertext account yet? Create one at [supertext.com](https://www.supertext.com/person/en/account/signin). Generate your API key at [supertext.com → Integrations → API](https://www.supertext.com/en/integrations/api) (requires the Admin role).
 
-<img src="images/settings.png" alt="Supertext settings in the Wix dashboard: the saved API key with links to create a Supertext account and generate the key, the message API key checked: the connection to Supertext works. with the time of the last check, Test connection, form of address, Mark translations as ready to publish, the Supertext language for English (main language), German, French and Italian (Switzerland), Send version information to Supertext, and the app version 0.1.0" width="720">
+<img src="images/settings.png" alt="Supertext settings in the Wix dashboard: the saved API key with links to create a Supertext account and generate the key, the message API key checked: the connection to Supertext works. with the time of the last check, Test connection, form of address, Mark translations as ready to publish, the Supertext language for English (main language), German, French and Italian (Switzerland) with a Translation review checkbox for each target language (German ticked), Send version information to Supertext, and the app version 0.1.0" width="720">
 
 Until a key is saved, the translate page asks for one:
 
@@ -74,6 +74,7 @@ All settings are per site, in **Supertext Translation → Settings**.
 | Form of address | Let Supertext decide | *Formal* (German "Sie", French "vous") or *Informal* ("du", "tu"). Sent only for languages where Supertext offers it; for English, Swiss German, Romansh, Albanian and Serbian Supertext decides (the page names them). |
 | Mark translations as ready to publish | On | On: translations go live on the site's language versions right away. Off: they wait in the Translation Manager until you mark them ready to publish. |
 | Languages | the site language's own code if Supertext offers it, else its default (`de` → `de-DE`) | The Supertext language each site language is translated into (and, for the main language, translated from). See [Languages](#languages). |
+| Translation review (per language, under Languages) | Off | Translations into that language go through Supertext's review service, where reviewers correct them on the website. See [Translation review](#translation-review). |
 | Send version information to Supertext | On | See [Version information](#version-information). |
 
 The settings page also shows the app's version, linked to its release notes.
@@ -102,10 +103,11 @@ Under **Settings → Languages** every site language has a combo box with Supert
   A language nobody has chosen for is translated into this default too, so Wix sites with bare languages (*German*, `de`) work right away. Choose another variant where you need it, for example *German (Switzerland)*.
 - Languages without an obvious choice (for example `en-IE`, `de-LI`, `fr-BE`, `sr-RS` or Swiss German `gsw`) show *— Not translated: choose a Supertext language —* and are marked *No Supertext language*. They aren't translated until you choose one, and editors who choose them get a message that sends them here.
 - For the main language you choose the language Supertext translates from (`en`, `de` …); its own code is preselected if Supertext has it (`en-US` → `en`).
+- **Translation review** (a checkbox next to each language the site is translated into, off by default): see [Translation review](#translation-review).
 
 **Save** stores the selected code for every language (existing choices stay as they were). Only codes from the list can be saved. The mapping is per site; there is no server-wide override.
 
-<img src="images/settings-languages.png" alt="Languages on the Supertext settings page: a combo box per site language, English (main language) preselected with English (en), German, French and Italian (Switzerland) with their own codes, Portuguese preselected with Portuguese (Portugal) (pt-PT), and Swiss German marked No Supertext language with the choice Not translated: choose a Supertext language, under the warning These languages have no Supertext language yet and aren't translated until you choose one: Swiss German." width="720">
+<img src="images/settings-languages.png" alt="Languages on the Supertext settings page: a combo box per site language, English (main language) preselected with English (en), German, French and Italian (Switzerland) with their own codes, Portuguese preselected with Portuguese (Portugal) (pt-PT), and Swiss German marked No Supertext language with the choice Not translated: choose a Supertext language, under the warning These languages have no Supertext language yet and aren't translated until you choose one: Swiss German; a Translation review checkbox for each target language, ticked for German (Switzerland), with its explanation below the table." width="720">
 
 ### Version information
 
@@ -116,6 +118,20 @@ Under **Settings → Languages** every site language has a combo box with Supert
 - whether an API key is set and the result of the last key check (*ok*, *invalid*, *missing*, *unreachable* or *error*, with its time and Supertext's HTTP status).
 
 No content, no API key and no personal data are sent. As a hosted app it has no callback address (no ping). Turn the checkbox off and save to stop the reports for your site; the key check on saving still runs. Supertext can also turn reports off for all sites on the app's server (`SUPERTEXT_VERSION_REPORTS=0`); the setting then says so.
+
+## Translation review
+
+With **Translation review**, people check the translations on the website itself and correct them there: you, your colleagues or Supertext linguists open the original and the translated page side by side in Chrome with the *Supertext Localization Review* extension and fix texts in a side panel. Their corrections come back into Wix.
+
+Turn it on per language the site is translated **into**: **Supertext Translation → Settings → Languages**, tick **Translation review** next to the language (e.g. *German (Switzerland)*) and click **Save**. Untick it to turn it off again; nothing else changes.
+
+- Translations into that language then go through Supertext's review service instead of directly to Supertext. It answers exactly like Supertext and passes everything on with your API key, so billing, languages, form of address and error messages stay the same. Other languages keep going directly to Supertext.
+- The review service keeps every translation of your account. A text it has translated before gets the same translation again (without a new Supertext call), and once a reviewer has corrected it, the corrected text.
+- **Corrections arrive with the next translation:** after a review, translate the items into that language again (*Translate with Supertext*, with **Overwrite existing translations** ticked, since the fields are translated already) to write the corrections into Wix Multilingual. As always, overwriting replaces changes made by hand in the Translation Manager.
+- Reviewers get a review link for your site from Supertext; nothing to set up in Wix.
+- The review service works with keys of the live Supertext API (the keys you generate on supertext.com).
+- *Export for translation* and *Import translation* don't use the review service. The API key check (*Test connection*, saving the settings) still goes directly to Supertext.
+- Supertext can turn Translation review off for all sites on the app's server; the checkboxes are then greyed out and the page says so.
 
 ## Who can translate
 
@@ -154,11 +170,15 @@ In your site's dashboard, open **Apps → Manage Apps**, find **Supertext Transl
 | *… too long for Wix, not saved* | The translation is longer than Wix allows for that field (e.g. a product name). Shorten it by hand in the Translation Manager. |
 | *Too many requests to Supertext* | Supertext's per-second limit was still exceeded after 4 automatic retries. Wait a moment and translate again. |
 | *Your Supertext translation limit is exceeded* | Your Supertext plan's volume is used up. |
+| *Authentication failed* only for languages with *Translation review* | The review service only works with keys of the live Supertext API. Untick *Translation review* for that language, or ask Supertext support. |
+| Reviewers' corrections don't show up in Wix | They arrive with the next translation: translate the items into that language again with **Overwrite existing translations** ticked. Check that the language's *Translation review* is ticked under Settings → Languages. |
+| *Translation review is turned off on this server* | Supertext turned the review service off for the app (`SUPERTEXT_REVIEW_URL` is empty); the saved choices are kept. Ask Supertext support. |
 | *The app restarted during the translation* | Start the translation again; items already done are kept (they show *Already translated, unchanged*). |
 
 ## Privacy and security
 
 - The texts you translate are sent to Supertext (api.supertext.com) and deleted there right after download (they expire after 24 hours anyway).
+- For languages with [Translation review](#translation-review) on, they go through Supertext's review service, which keeps the texts and their translations (per API key) so reviewers can correct them and later translations reuse them.
 - The app stores per site: the Supertext API key (encrypted), the settings above, the last API key check and version report (no key, only a fingerprint to notice a changed key), and the list of recent translations (item names and results). It doesn't store your content.
 - Version information: see [Version information](#version-information).
 - The app never changes your site's original texts; it only writes translations.

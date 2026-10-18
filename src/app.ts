@@ -5,7 +5,7 @@ import type { Config } from './config.js';
 import { errorInfo, LocalizedError, type ErrorInfo } from './i18n/error.js';
 import { resolveLocale, translator, type Translator } from './i18n/index.js';
 import { Reporting } from './reporting.js';
-import { createSupertextClient, type ApiKeyCheck } from './supertext/index.js';
+import { createSupertextClient, effectiveReviewUrl, type ApiKeyCheck } from './supertext/index.js';
 import type { SiteSettings, Store } from './store/store.js';
 import { exportFile, importFile, refuseLargeUpload } from './translation/files.js';
 import { startJob } from './translation/jobs.js';
@@ -44,10 +44,17 @@ export function createApp(deps: AppDeps) {
       apiBase: config.wixApiBase,
       fetch: deps.fetch,
     });
-  const supertextFor = (settings: SiteSettings) =>
+  /** '' = Translation review is off on this server (SUPERTEXT_REVIEW_URL=''). */
+  const reviewUrl = effectiveReviewUrl(config.reviewUrl, config.supertextEndpoint);
+  /**
+   * Translations: directly to Supertext, or, for a language with *Translation review* on, through
+   * the review service (same key, User-Agent and fetch). The key check, version reports and
+   * translation files never use the review service.
+   */
+  const supertextFor = (settings: SiteSettings, review = false) =>
     createSupertextClient({
       apiKey: settings.apiKey || config.supertextApiKey,
-      endpoint: config.supertextEndpoint,
+      endpoint: review && reviewUrl ? reviewUrl : config.supertextEndpoint,
       fetch: deps.fetch,
     });
   const hasKey = (settings: SiteSettings) => Boolean(settings.apiKey || config.supertextApiKey);
@@ -280,6 +287,7 @@ export function createApp(deps: AppDeps) {
         ctx: { t, instance: auth.signed, page: 'settings' },
         settings,
         serverKey: Boolean(config.supertextApiKey),
+        reviewAvailable: Boolean(reviewUrl),
         languages,
         languagesError,
         keyCheck,
@@ -319,6 +327,13 @@ export function createApp(deps: AppDeps) {
       else invalid.push(code);
     }
     settings.languageCodes = codes;
+    // *Translation review* per target language (`review:<locale>`). While the server has review off,
+    // the checkboxes are disabled (not sent): keep the saved choice.
+    if (reviewUrl) {
+      settings.reviewLocales = Object.keys(form)
+        .map((name) => /^review:(.+)$/.exec(name)?.[1])
+        .filter((locale): locale is string => Boolean(locale) && form[`review:${locale}`] === '1');
+    }
     await store.saveSettings(settings);
     // The automatic API key check and the settings_saved report; never fails the save.
     await reporting.run(auth.instance.instanceId, 'afterSettingsSaved');

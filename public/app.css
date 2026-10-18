@@ -102,7 +102,8 @@ th.check, td.check { width: 36px; }
 .result.failed { color: var(--red); }
 
 .codes td { padding: 8px 10px; }
-.codes td:first-child { width: 50%; }
+.codes td:first-child { width: 40%; }
+.codes td.review, .codes th:last-child { text-align: center; width: 9em; }
 .codes th { text-align: left; font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--line); }
 .codes select { max-width: 100%; }
 #test-result.ok { color: var(--text); font-weight: 600; }

@@ -32,6 +32,8 @@ Open **Wix Multilingual's Translation Manager**, choose the language and the ite
 
 Whether translations go live right away is a setting (*Mark translations as ready to publish*, on by default). When it's off, translations wait in the Translation Manager until you mark them ready to publish. A language that is hidden from visitors stays hidden either way.
 
+**Translation review:** if your administrator turned on *Translation review* for a language (Settings → Languages), reviewers (your colleagues or Supertext linguists) check and correct the translations on the website. Their corrections come into Wix the next time you translate the items into that language: after a review, translate them again with **Overwrite existing translations** ticked. Texts reviewed once keep their corrected wording in later translations.
+
 ## Existing translations
 
 Without any option, the app only fills fields that have **no translation yet** in that language. Fields translated already, by you or by the app, are kept, and the result says so: *Translated (1 field) · 1 kept*, or *Already translated, unchanged* when there was nothing left to do.

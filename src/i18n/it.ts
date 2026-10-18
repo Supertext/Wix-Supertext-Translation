@@ -92,6 +92,10 @@ export const it: Messages = {
   "settings.languages.supertext": "Lingua Supertext",
   "settings.languages.choose": "— Non tradotta: scelga una lingua Supertext —",
   "settings.languages.missing": "Nessuna lingua Supertext",
+  "settings.languages.review": "Revisione delle traduzioni",
+  "settings.languages.reviewHelp":
+    "Revisione delle traduzioni: le traduzioni in una lingua con questa casella selezionata passano dal servizio di revisione di Supertext, così i revisori possono controllarle e correggerle direttamente sul sito con l'estensione Supertext Localization Review. Le loro correzioni vengono riprese alla prossima traduzione dell'elemento. Le altre lingue vanno direttamente a Supertext.",
+  "settings.languages.reviewOff": "La revisione delle traduzioni è disattivata su questo server (SUPERTEXT_REVIEW_URL è vuoto).",
   "settings.languages.unmapped":
     "Queste lingue non hanno ancora una lingua Supertext e non vengono tradotte finché non ne sceglie una: {languages}.",
   // Translation files (export for translation, import translation)

@@ -91,6 +91,10 @@ export const de: Messages = {
   "settings.languages.supertext": "Supertext-Sprache",
   "settings.languages.choose": "— Wird nicht übersetzt: Supertext-Sprache wählen —",
   "settings.languages.missing": "Keine Supertext-Sprache",
+  "settings.languages.review": "Übersetzungsprüfung",
+  "settings.languages.reviewHelp":
+    "Übersetzungsprüfung: Übersetzungen in eine Sprache mit diesem Häkchen laufen über den Prüfdienst von Supertext, damit Prüferinnen und Prüfer sie mit der Erweiterung Supertext Localization Review direkt auf der Website kontrollieren und korrigieren können. Ihre Korrekturen werden beim nächsten Übersetzen des Elements übernommen. Andere Sprachen gehen direkt an Supertext.",
+  "settings.languages.reviewOff": "Die Übersetzungsprüfung ist auf diesem Server ausgeschaltet (SUPERTEXT_REVIEW_URL ist leer).",
   "settings.languages.unmapped":
     "Diese Sprachen haben noch keine Supertext-Sprache und werden erst übersetzt, wenn Sie eine wählen: {languages}.",
   // Translation files (export for translation, import translation)

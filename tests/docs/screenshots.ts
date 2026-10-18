@@ -37,6 +37,8 @@ async function main() {
   const supertext = createSupertextStandin();
   const wixUrl = await listen((request) => wix.handle(request));
   const supertextUrl = await listen((request) => supertext.handle(request));
+  // Translation review: a second stand-in address, never Supertext's real review service.
+  const reviewUrl = await listen((request) => supertext.handle(request));
   const store = new MemoryStore();
   const app = createApp({
     config: loadConfig({
@@ -44,6 +46,7 @@ async function main() {
       WIX_APP_SECRET: SECRET,
       WIX_API_BASE: wixUrl,
       SUPERTEXT_API_ENDPOINT: `${supertextUrl}/v1/`,
+      SUPERTEXT_REVIEW_URL: `${reviewUrl}/v1/`,
       // Version reports go to the stand-in, never to the live Commando Center.
       SUPERTEXT_REPORT_URL: `${supertextUrl}/report`,
     }),
@@ -71,6 +74,8 @@ async function main() {
     { id: 'pt', languageCode: 'pt', visibility: 'VISIBLE', displayName: 'Portuguese' },
     { id: 'gsw', languageCode: 'gsw', visibility: 'VISIBLE', displayName: 'Swiss German' },
   );
+  // Translation review ticked for German (Switzerland).
+  await store.saveSettings({ ...(await store.getSettings(INSTANCE)), reviewLocales: ['de-CH'] });
   await page.goto(url('/settings'));
   await shot('settings-languages', page.locator('section.card', { has: page.locator('table.codes') }));
   wix.locales.splice(-2);

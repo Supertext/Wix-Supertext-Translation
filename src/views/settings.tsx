@@ -20,6 +20,8 @@ export interface SettingsPageProps {
   settings: SiteSettings;
   /** A key is set on the server (SUPERTEXT_API_KEY). */
   serverKey: boolean;
+  /** Translation review is available (SUPERTEXT_REVIEW_URL isn't ''). */
+  reviewAvailable?: boolean;
   languages?: SiteLanguages;
   languagesError?: ErrorInfo;
   /** The latest automatic API key check (after a save, *Test connection*, a rejected translation). */
@@ -125,6 +127,7 @@ export function SettingsPage(props: SettingsPageProps) {
                 <tr>
                   <th>{t.t('settings.languages.site')}</th>
                   <th>{t.t('settings.languages.supertext')}</th>
+                  <th>{t.t('settings.languages.review')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -144,10 +147,21 @@ export function SettingsPage(props: SettingsPageProps) {
                     value={mapping[locale.id] ?? ''}
                     suggested={suggestTarget(locale.id)}
                     options={targetOptions()}
+                    review={{
+                      field: `review:${locale.id}`,
+                      checked: (settings.reviewLocales ?? []).includes(locale.id),
+                      disabled: props.reviewAvailable === false,
+                    }}
                   />
                 ))}
               </tbody>
             </table>
+          )}
+          {languages && languages.targets.length > 0 && (
+            <>
+              <p class="help">{t.t('settings.languages.reviewHelp')}</p>
+              {props.reviewAvailable === false && <p class="muted">{t.t('settings.languages.reviewOff')}</p>}
+            </>
           )}
         </section>
 
@@ -195,7 +209,16 @@ export function SettingsPage(props: SettingsPageProps) {
  * code selected, else the suggestion (the exact code, else the SDK default: de → de-DE), else
  * "— choose —" (not translated until a code is chosen).
  */
-function LanguageRow(props: { ctx: PageContext; name: string; field: string; value: string; suggested: string | null; options: string[] }) {
+function LanguageRow(props: {
+  ctx: PageContext;
+  name: string;
+  field: string;
+  value: string;
+  suggested: string | null;
+  options: string[];
+  /** The *Translation review* checkbox (target languages only). */
+  review?: { field: string; checked: boolean; disabled: boolean };
+}) {
   const { t } = props.ctx;
   const id = props.field.replace(/[^\w-]/g, '-');
   const selected = props.value || props.suggested || '';
@@ -231,6 +254,18 @@ function LanguageRow(props: { ctx: PageContext; name: string; field: string; val
             </option>
           )}
         </select>
+      </td>
+      <td class="review">
+        {props.review && (
+          <input
+            type="checkbox"
+            name={props.review.field}
+            value="1"
+            checked={props.review.checked}
+            disabled={props.review.disabled}
+            aria-label={`${t.t('settings.languages.review')}: ${props.name}`}
+          />
+        )}
       </td>
     </tr>
   );

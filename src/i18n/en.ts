@@ -96,6 +96,10 @@ export const en = {
   "settings.languages.supertext": "Supertext language",
   "settings.languages.choose": "— Not translated: choose a Supertext language —",
   "settings.languages.missing": "No Supertext language",
+  "settings.languages.review": "Translation review",
+  "settings.languages.reviewHelp":
+    "Translation review: translations into a language with this ticked go through Supertext's review service, so reviewers can check and correct them on the website with the Supertext Localization Review extension. Their corrections are used the next time the item is translated. Other languages go directly to Supertext.",
+  "settings.languages.reviewOff": "Translation review is turned off on this server (SUPERTEXT_REVIEW_URL is empty).",
   "settings.languages.unmapped":
     "These languages have no Supertext language yet and aren't translated until you choose one: {languages}.",
   // Translation files (export for translation, import translation)

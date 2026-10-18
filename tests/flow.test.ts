@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { signInstance } from '../src/auth/instance.js';
 import type { Job } from '../src/store/store.js';
+import { loadConfig } from '../src/config.js';
+import { effectiveReviewUrl, REVIEW_URL } from '../src/supertext/index.js';
 import { APP_SECRET, INSTANCE_ID, setup } from './helpers.js';
 import { CATEGORIES, PRODUCTS } from './standin/seed.js';
 
@@ -224,6 +226,73 @@ describe('translation job', () => {
     await env.settle();
     const job = (await env.store.latestJob(INSTANCE_ID))!;
     expect(job.items.map((item) => item.error?.code)).toEqual(['invalid_language_pair']);
+  });
+});
+
+describe('translation review', () => {
+  const byHost = (env: ReturnType<typeof setup>, host: string) =>
+    env.supertextCalls.filter((call) => call.host === host && call.path.startsWith('/v1/translate/')).map((call) => call.method);
+
+  it('sends a language with Translation review through the review service, the others directly', async () => {
+    const env = setup();
+    const settings = await env.store.getSettings(INSTANCE_ID);
+    await env.store.saveSettings({ ...settings, reviewLocales: ['de-CH'] });
+    await startJob(env, { schemaId: PRODUCTS, entityIds: ['prod-hazelnut-bar'], locales: ['de-CH', 'fr-CH'] });
+    await env.settle();
+    const job = (await env.store.latestJob(INSTANCE_ID))!;
+    expect(job.items.map((item) => [item.locale, item.state])).toEqual([
+      ['de-CH', 'translated'],
+      ['fr-CH', 'translated'],
+    ]);
+    // German: upload, status, download and delete through the review service; French directly.
+    expect(byHost(env, 'review.test')).toEqual(['POST', 'GET', 'GET', 'DELETE']);
+    expect(byHost(env, 'supertext.test')).toEqual(['POST', 'GET', 'GET', 'DELETE']);
+    expect(content(env, 'prod-hazelnut-bar', 'de-CH')!.fields.name.textValue).toBe('Milchschokoladentafel mit Haselnüssen');
+  });
+
+  it("is off everywhere with an empty SUPERTEXT_REVIEW_URL, and Supertext's review service by default", async () => {
+    const env = setup({ SUPERTEXT_REVIEW_URL: '' });
+    const settings = await env.store.getSettings(INSTANCE_ID);
+    await env.store.saveSettings({ ...settings, reviewLocales: ['de-CH'] });
+    await startJob(env, { schemaId: PRODUCTS, entityIds: ['prod-hazelnut-bar'], locales: ['de-CH'] });
+    await env.settle();
+    expect(byHost(env, 'review.test')).toEqual([]);
+    expect(byHost(env, 'supertext.test')).toEqual(['POST', 'GET', 'GET', 'DELETE']);
+    const html = await (await env.page('/settings')).text();
+    expect(html).toMatch(/<input type="checkbox" name="review:de-CH" value="1" checked="" disabled=""/);
+    expect(html).toContain('Translation review is turned off on this server');
+
+    expect(loadConfig({}).reviewUrl).toBe(REVIEW_URL);
+    expect(REVIEW_URL).toBe('https://localizationreview-production.up.railway.app/v1/');
+    expect(effectiveReviewUrl(REVIEW_URL, '')).toBe(REVIEW_URL);
+    expect(effectiveReviewUrl('', '')).toBe('');
+    expect(effectiveReviewUrl('https://api.supertext.com/v1', '')).toBe('');
+    expect(effectiveReviewUrl('https://supertext.test/v1/', 'https://supertext.test/v1')).toBe('');
+  });
+
+  it('never uses the review service for the API key check', async () => {
+    const env = setup();
+    const settings = await env.store.getSettings(INSTANCE_ID);
+    await env.store.saveSettings({ ...settings, reviewLocales: ['de-CH', 'fr-CH'] });
+    await env.request('/api/test', { method: 'POST', body: JSON.stringify({ apiKey: 'some-key' }) });
+    await env.settle();
+    expect(env.supertextCalls.filter((call) => call.host === 'review.test')).toEqual([]);
+  });
+
+  it('saves the checkbox per target language on Settings → Languages', async () => {
+    const env = setup();
+    const response = await env.app.request('/settings', {
+      method: 'POST',
+      body: new URLSearchParams({ instance: env.instance, locale: 'de', tone: 'default', 'review:fr-CH': '1', 'target:fr-CH': 'fr-CH' }),
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    });
+    expect((await env.store.getSettings(INSTANCE_ID)).reviewLocales).toEqual(['fr-CH']);
+    const html = await (await env.app.request(response.headers.get('location')!)).text();
+    expect(html).toContain('<th>Übersetzungsprüfung</th>');
+    expect(html).toMatch(/<input type="checkbox" name="review:fr-CH" value="1" checked=""/);
+    expect(html).toMatch(/<input type="checkbox" name="review:de-CH" value="1"(?! checked)/);
+    expect(html).not.toContain('name="review:en-US"');
+    await env.settle();
   });
 });
 

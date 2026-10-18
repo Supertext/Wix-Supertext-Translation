@@ -21,7 +21,7 @@ src/
     jobs.ts               a job: items × languages, progress, error handling
     site.ts               languages, translatable schemas, list pages for the translate page
     language-codes.ts     Wix locale → Supertext code (the site's mapping, else an exact code; SDK's Languages)
-  supertext/index.ts      the Supertext SDK with this app's defaults (User-Agent, stand-in endpoint)
+  supertext/index.ts      the Supertext SDK with this app's defaults (User-Agent, stand-in endpoint, REVIEW_URL)
   vendor/supertext-sdk/   the Supertext SDK for TypeScript, vendored (don't edit; see "Supertext SDK")
   vendor/supertext-plugin-health/  Supertext Plugin Health for TypeScript, vendored (don't edit; see "Supertext Plugin Health")
   store/
@@ -131,6 +131,10 @@ Supertext accepts exactly the codes its `GET features` lists (the SDK's `Languag
 
 The settings page (**Languages**) has one combo box per site language, the main language included: the saved code selected, else the suggestion (`Languages.suggestTarget()` = exact match, else default; for the main language its source code), else *— Not translated: choose a Supertext language —*. The options are `Languages.SOURCES` for the main language and `Languages.targetOptions()` for the others, shown as *Name (code)* with the name in the interface language (`Intl.DisplayNames`) and sorted by it. Saving stores the selected code of every row, so a preselected default becomes the saved choice (the stored format didn't change, so earlier mappings stay as they are). A warning lists only the languages without mapping and without default; the translate page leaves those unchecked and links to the settings; all others are ticked. Only codes Supertext offers are saved (in their exact form); others are reported as *Saved, except these language codes …*. The form of address hint names the languages where formal/informal isn't available.
 
+### Translation review
+
+`SiteSettings.reviewLocales` (column `review_locales`, JSONB array of Wix locale IDs, `[]` for existing rows; checkbox `review:<locale>` next to each target's combo box under Settings → Languages, off by default) lists the target languages translated through Supertext's review service, the translation proxy of [Supertext Localization Review](https://github.com/Supertext/Localization-Review-Supertext-Translation). It speaks the same API v1, forwards to the live Supertext API with the site's key, stores every segment per key and serves reviewers' corrections on the next upload, so nothing else in the protocol changes. `runJob` asks `JobDeps.supertext(settings, review)` for each locale and keeps at most two clients per job (direct, review), created lazily; `translateTexts` uploads, polls, downloads and deletes with the same client, so a job is always collected where it was submitted. In `app.ts` the review client is `createSupertextClient` with the same key, User-Agent and fetch and `endpoint` = `SUPERTEXT_REVIEW_URL` (default `REVIEW_URL` in `src/supertext/index.ts`, `https://localizationreview-production.up.railway.app/v1/`). `effectiveReviewUrl()` makes it `''` when the variable is set to `''` or equals the normal endpoint (then no second client; the checkboxes are disabled and the saved choices kept). The key check, version reports and translation files never use the review service. Tests: `tests/flow.test.ts` → *translation review* (a review language's upload, status, download and delete go to the review stand-in host `review.test`, the others to `supertext.test`; `SUPERTEXT_REVIEW_URL=''` turns it off; the default is `REVIEW_URL`; the key check stays direct; the checkbox is saved per target only).
+
 The stand-in (`tests/standin/supertext.ts`) accepts only the listed target codes (HTTP 404 otherwise) and answers `politeness` for a target without it with HTTP 400 `FEATURE_ERROR`, like the live API.
 
 ## Commando Center: version reports and the API key check
@@ -180,7 +184,7 @@ npm run typecheck
 npm run build
 ```
 
-`tests/flow.test.ts` runs the whole app (`createApp`) against the stand-ins with an in-memory store: the translate page, jobs, overwrite, settings, the language mapping, unsupported languages and politeness, language-pair and authentication errors, the key check and the reports (to the stand-in's `/report`), encrypted keys. `tests/languages.test.ts` covers the language rules, `tests/reporting.test.ts` the reporting glue with a fake transport (site URL, off switches, failure back-off, never throwing). `tests/files.test.ts` exports and imports through the routes against the stand-ins: reference round trip, keys and codes, every import outcome, rich text with missing blocks, upload size.
+`tests/flow.test.ts` runs the whole app (`createApp`) against the stand-ins with an in-memory store: the translate page, jobs, overwrite, settings, the language mapping, Translation review, unsupported languages and politeness, language-pair and authentication errors, the key check and the reports (to the stand-in's `/report`), encrypted keys. `tests/languages.test.ts` covers the language rules, `tests/reporting.test.ts` the reporting glue with a fake transport (site URL, off switches, failure back-off, never throwing). `tests/files.test.ts` exports and imports through the routes against the stand-ins: reference round trip, keys and codes, every import outcome, rich text with missing blocks, upload size.
 
 ## Screenshots
 
@@ -188,7 +192,7 @@ npm run build
 npm run docs:screenshots   # Playwright, 1× scale, into docs/images/
 ```
 
-`tests/docs/screenshots.ts` starts the stand-ins and the app in-process and captures the app's pages (no key yet, the language mapping with an unmapped language, settings with the key check, translate page, results, list afterwards, overwrite warning, export for translation and the import summary after a round trip, German UI). Regenerate them in the same commit as any UI change they show. Chromium: Playwright's own (`npx playwright install chromium`) or `CHROME=/path/to/chrome`.
+`tests/docs/screenshots.ts` starts the stand-ins and the app in-process and captures the app's pages (no key yet, the language mapping with an unmapped language and Translation review ticked for German (the review service is a second stand-in address, never the real one), settings with the key check, translate page, results, list afterwards, overwrite warning, export for translation and the import summary after a round trip, German UI). Regenerate them in the same commit as any UI change they show. Chromium: Playwright's own (`npx playwright install chromium`) or `CHROME=/path/to/chrome`.
 
 ## CI
 
@@ -206,6 +210,7 @@ The service **Wix** in the Railway project *supertext-cms-demos* builds this rep
 | `DATABASE_URL` | the shared Postgres service's URL with database `wix_supertext` (created on first start) |
 | `APP_ENCRYPTION_KEY` | random secret for stored API keys; optional (falls back to the app secret) |
 | `SUPERTEXT_API_KEY` | optional default key (the demo site) |
+| `SUPERTEXT_REVIEW_URL` | optional: another review service than Supertext's for languages with *Translation review* (unset: `REVIEW_URL`); `''` turns review off for all sites. Only with the live API: leave it `''` when `SUPERTEXT_API_ENDPOINT` points at staging or testing |
 | `SUPERTEXT_VERSION_REPORTS` | optional: `0` turns version reports off for all sites (default: each site's setting, on) |
 | `SUPERTEXT_REPORT_URL` | never in production (Plugin Health's default is the live Commando Center); tests point it at a stand-in |
 
@@ -262,6 +267,7 @@ Never tag or create releases by hand. Changes to permissions or extensions are m
 - **First test on a real Wix site (October 2026, Wix Stores test site):** the app is installed, reads the site's locales (bare languages there, e.g. `de`, `fr`), lists the Wix Stores products from Translation Content in the main language and translates them with Supertext. Writing a *new* translation with *Update Content By Key* failed with *Entity not found*, hence *Create Content* for new translations. Still to confirm on the site: that creating translations in Wix Stores' schemas is allowed and shows up in the Translation Manager and on the live site, and Wix Blog.
 - Screenshots of Wix's own screens (Wix Multilingual's language setup, the Translation Manager with a translated product) follow once the demo site exists; the guides show the app's pages from the stand-ins until then.
 - Version reports: `GET /apps/v1/instance` (the site URL) is tried against the stand-in only so far; check on the test site that it answers without an extra permission and returns `site.url` (`npm run wix:probe`). Until then a failing call only means no report.
+- A translation memory and reviewers' corrections come from the review service only for languages with *Translation review* on; corrections reach Wix only with the next translation (with *Overwrite existing translations*; no push).
 - Jobs run inside the web process (one Railway instance); a restart marks a running job *interrupted*. A queue comes later.
 - Up to 25 items per page and 100 per job; "translate everything" comes later.
 - No translation of the Wix Editor's own pages and texts (Wix Multilingual handles those in the Editor).
