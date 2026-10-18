@@ -7,9 +7,11 @@ import { resolveLocale, translator, type Translator } from './i18n/index.js';
 import { Reporting } from './reporting.js';
 import { createSupertextClient, type ApiKeyCheck } from './supertext/index.js';
 import type { SiteSettings, Store } from './store/store.js';
+import { exportFile, importFile, refuseLargeUpload } from './translation/files.js';
 import { startJob } from './translation/jobs.js';
 import { supportedSource, supportedTarget } from './translation/language-codes.js';
 import { entityPage, siteLanguages, translatableSchemas, type SiteLanguages } from './translation/site.js';
+import { ImportSummaryPanel } from './views/files.js';
 import { JobPanel } from './views/job.js';
 import { appUrl, KeyCheckMessage, type PageContext } from './views/layout.js';
 import { SettingsPage } from './views/settings.js';
@@ -181,6 +183,61 @@ export function createApp(deps: AppDeps) {
     }
     const html = (await JobPanel({ t, job, languages })).toString();
     return c.json({ status: job.status, html });
+  });
+
+  /** *Export for translation*: one item, XLIFF (one or more languages) or HTML (one) → the file as a download. */
+  app.post('/api/files/export', async (c) => {
+    const instance = apiAuth(c);
+    if (instance instanceof Response) return instance;
+    const t = localeOf(c);
+    const body = (await c.req.json().catch(() => ({}))) as { schemaId?: string; entityIds?: string[]; locales?: string[]; format?: string };
+    try {
+      const entityIds = (body.entityIds ?? []).filter((id) => typeof id === 'string' && id.length > 0);
+      if (!body.schemaId || entityIds.length !== 1) {
+        throw new LocalizedError('Select exactly one item to export.', 'file_select_one');
+      }
+      const settings = await store.getSettings(instance.instanceId);
+      const file = await exportFile(wixFor(instance.instanceId), {
+        schemaId: body.schemaId,
+        entityId: entityIds[0],
+        locales: (body.locales ?? []).filter((id) => typeof id === 'string'),
+        format: body.format === 'html' ? 'html' : 'xliff',
+        mapping: settings.languageCodes,
+      });
+      return c.body(file.content, 200, {
+        'Content-Type': file.contentType,
+        'Content-Disposition': `attachment; filename="${file.filename.replace(/[^\w.-]/g, '_')}"`,
+        'Cache-Control': 'no-store',
+      });
+    } catch (error) {
+      const info = errorInfo(error);
+      return c.json({ error: info, text: t.error(info) }, 400);
+    }
+  });
+
+  /** *Import translation*: one uploaded file (≤ 10 MB, parsed in memory, never stored) → written, summary HTML. */
+  app.post('/api/files/import', async (c) => {
+    const instance = apiAuth(c);
+    if (instance instanceof Response) return instance;
+    const t = localeOf(c);
+    try {
+      refuseLargeUpload(c.req.header('content-length'));
+      const form = await c.req.parseBody();
+      const file = form.file;
+      if (!(file instanceof File) || file.size === 0) throw new LocalizedError('Choose a file.', 'file_choose');
+      refuseLargeUpload(undefined, file);
+      const settings = await store.getSettings(instance.instanceId);
+      const summaries = await importFile(wixFor(instance.instanceId), await file.text(), {
+        includeChanged: form.includeChanged === '1',
+        overwrite: form.overwrite === '1',
+        publish: settings.publish,
+      });
+      const html = (await ImportSummaryPanel({ t, summaries }).toString()).toString();
+      return c.json({ summaries, html });
+    } catch (error) {
+      const info = errorInfo(error);
+      return c.json({ error: info, text: t.error(info) }, 400);
+    }
   });
 
   /** *Test connection*: the key typed into the field, else the saved key (then also the stored key check). */

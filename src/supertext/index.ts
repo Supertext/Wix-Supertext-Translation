@@ -26,7 +26,8 @@ export type {
   Politeness,
   SegmentInput,
 } from '../vendor/supertext-sdk/v1/index.js';
-export { SDK_VERSION } from '../vendor/supertext-sdk/index.js';
+export { SDK_VERSION, TranslationFiles, TranslationFileError } from '../vendor/supertext-sdk/index.js';
+export type { FileFormat, FileJob, ImportStatus } from '../vendor/supertext-sdk/index.js';
 
 export interface ClientSettings {
   apiKey: string;

@@ -132,3 +132,7 @@ th.check, td.check { width: 36px; }
   table.items td.title { min-width: 150px; }
   .codes td:first-child { width: auto; }
 }
+fieldset.plain { border: 0; padding: 0; margin: 0 0 14px; }
+fieldset.plain legend { font-weight: 600; font-size: 13px; padding: 0; margin: 0 0 4px; }
+.import-summary { margin-top: 16px; }
+.import-summary ul { margin: 6px 0 0; padding-left: 20px; }

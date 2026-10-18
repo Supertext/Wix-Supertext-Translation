@@ -12,7 +12,7 @@ For editors. Once the app is set up (see [INSTALLATION.md](INSTALLATION.md)), yo
 4. Under **Choose the languages**, tick the languages to translate into. All are ticked at first; the code next to each (e.g. `de-CH`) is the variant Supertext translates into. Languages hidden from visitors are marked *(hidden on the site)*. A site language such as *German* is translated into its usual variant (`de-DE`) unless an administrator chose another one under **Settings → Languages**. A language marked *no Supertext language yet* (one without an obvious variant, for example *Swiss German* or *English (Ireland)*) isn't ticked: an administrator first chooses its Supertext language under **Settings → Languages**.
 5. Click **Translate 2 items with Supertext**.
 
-   ![Translate with Supertext: content type Products, Dark chocolate praline box and Milk chocolate bar with hazelnuts ticked, both Not translated in German, French and Italian (Switzerland); German and French (Switzerland) ticked, Italian not; Overwrite existing translations off; the button Translate 2 items with Supertext](images/translate-page.png)
+   ![Translate with Supertext: content type Products, Dark chocolate praline box and Milk chocolate bar with hazelnuts ticked, both Not translated in German, French and Italian (Switzerland); German and French (Switzerland) ticked, Italian not; Overwrite existing translations off; the button Translate 2 items with Supertext; below, Export for translation and Import translation](images/translate-page.png)
 
 6. Each item and language takes a few seconds. The **Translation** box shows the result as it goes, and a summary at the end. You can leave the page meanwhile; the translation goes on, and the box shows the last result when you come back.
 
@@ -39,6 +39,48 @@ Without any option, the app only fills fields that have **no translation yet** i
 To replace existing translations, tick **Overwrite existing translations**. The page warns you first: changes made by hand in the Translation Manager are lost.
 
 ![Categories: Swiss chocolate is Partly translated into German; Overwrite existing translations is ticked, with the warning that fields that are translated already will be replaced, including changes made by hand in the Translation Manager](images/overwrite-warning.png)
+
+## Translation files: export for translation, import translation
+
+Instead of Supertext AI, you can have an item translated by someone else: a translator, a translation tool (Trados, memoQ, Phrase and other CAT tools) or Supertext's web app. The app exports the item's texts as a file and imports the translated file again. Both are on the translate page, below the translate button.
+
+**Export for translation**
+
+1. In the list, tick exactly **one** item.
+2. Under **Export for translation**, choose the **File format**:
+   - **XLIFF 1.2 (for translation tools)**: the better choice for translators and translation tools. Formatting (bold, links, …) shows as tags they can move but not break. One file can hold several languages.
+   - **HTML (one language per file)**: for Supertext's web app or anyone who translates HTML files. Tick one language.
+3. Tick the target languages. Every site language is offered, also one without a Supertext language: the file then names the Wix code.
+4. Click **Download file**. The file is called like `wix-<item ID>-fr-CH.xlf` (`wix-<item ID>.xlf` for several languages).
+
+   ![Export for translation: File format XLIFF 1.2 (for translation tools) chosen, HTML (one language per file) not; target languages German and French (Switzerland) ticked, Italian not; the button Download file](images/export-for-translation.png)
+
+The file holds the same texts Supertext AI would translate (see *What is translated*), also those translated already. Send it to the translator or upload it to Supertext's web app. Translators must keep the file's structure: in an HTML file, leave the head (the `supertext:` lines) and the `data-st-id` attributes alone.
+
+**Import translation**
+
+1. Under **Import translation**, choose the translated file (**Translated file (XLIFF or HTML)**, at most 10 MB).
+2. Leave **Also import texts whose source changed since the export** off unless you want translations of texts that were edited in the meantime (they then translate the old text).
+3. **Overwrite existing translations** works as for Supertext AI: off, fields that are translated already are kept.
+4. Click **Import translation**. The translations are saved in Wix Multilingual like Supertext's, with the same *Mark translations as ready to publish* setting.
+
+The app then shows a summary per item and language:
+
+![Import translation: the file wix-cat-swiss-chocolate.xlf chosen; Swiss chocolate · German (Switzerland): Imported: 0, Not translated in the file: 1, Kept, already translated: 1; Swiss chocolate · French (Switzerland): Imported: 2](images/import-summary.png)
+
+| Line | Meaning |
+| --- | --- |
+| *Imported: 3* | Texts saved in Wix Multilingual (a rich-text paragraph counts as one text). |
+| *Skipped, source changed since the export: 1* | The original text was edited after the export, so the translation may be out of date. Import again with *Also import texts whose source changed since the export* to save it anyway, or export again. |
+| *Not translated in the file: 1* | The file has no translation for it (XLIFF only). |
+| *Formatting changed, not imported: 1* | The translation breaks or adds formatting (tags, links) that the original doesn't have. Fix it in the file and import again. |
+| *Not in the file: 1* | The text was added after the export. |
+| *Kept, already translated: 1* | The field is translated already and *Overwrite existing translations* was off. |
+| *Not saved, too long for the field or other parts of the same rich text not translated: 1* | A rich text is saved only when all its paragraphs are translated (otherwise the others would be replaced by the original); a text longer than Wix allows isn't saved either. |
+
+An HTML file can't mark a text as untranslated: imported unchanged, it saves the original text as the translation.
+
+Messages: *This file isn't a valid XLIFF or HTML translation file* (damaged, or another kind of file), *This file wasn't exported by the Supertext app, or its header was removed* (the metadata is missing), *This file belongs to another system* (exported from another Supertext plugin), *The item this file was exported from no longer exists*, *The site has no language …* (the language was removed since), *The file is too large (at most 10 MB)*, *Nothing to translate* (the item has no text to export).
 
 ## What is translated
 

@@ -121,6 +121,8 @@ No content, no API key and no personal data are sent. As a hosted app it has no 
 
 Everyone who can open the app's pages in the site's dashboard: the site owner and collaborators whose role gives access to apps. The app checks on every request that it comes from the Wix dashboard of that site (Wix's signed app instance).
 
+**Translation files** (*Export for translation* and *Import translation* on the translate page) need nothing to set up and no API key; the same people can use them. Uploads are limited to 10 MB, read in memory and never stored; imported translations follow *Mark translations as ready to publish*. See the [user guide](USER_GUIDE.md#translation-files-export-for-translation-import-translation).
+
 ## Updating
 
 Nothing to do: the app runs on Supertext's servers and is updated there. The settings page shows the current version.
@@ -133,6 +135,8 @@ In your site's dashboard, open **Apps → Manage Apps**, find **Supertext Transl
 
 | Message | Cause / fix |
 | --- | --- |
+| *This file isn't a valid XLIFF or HTML translation file* / *This file wasn't exported by the Supertext app …* | The imported file is damaged, another kind of file, or the translator removed its metadata (HTML head, XLIFF file header). Export again and ask the translator to keep the structure. |
+| *The file is too large (at most 10 MB)* | Export fewer languages per file. |
 | *This page has expired. Reload it from the Wix dashboard.* | The app's page was opened outside the dashboard or the link is too old. Open it again from the sidebar. |
 | *Add your Supertext API key* / *No Supertext API key configured* | Enter the key under Settings (step 4). |
 | *Authentication failed* / *Supertext rejected the API key* | The key is wrong or revoked. Check that you copied the whole key, or generate a new one at [supertext.com → Integrations → API](https://www.supertext.com/en/integrations/api) (Admin role required). No Supertext account yet? Create one at [supertext.com](https://www.supertext.com/person/en/account/signin). |

@@ -104,6 +104,23 @@ async function main() {
   await page.check('#overwrite');
   await shot('overwrite-warning', page.locator('#translate-form'));
 
+  // Translation files: export the category as XLIFF, translate the file, import it.
+  await page.goto(url('/', { type: '6a1f2c3d-0002-4000-8000-000000000002' }));
+  await page.check('input[name="entity"]');
+  await page.uncheck('input[name="export-locale"][value="it-CH"]');
+  await shot('export-for-translation', page.locator('#export-card'));
+  const [download] = await Promise.all([page.waitForEvent('download'), page.click('#export-button')]);
+  const xliff = await (await download.createReadStream()).toArray().then((chunks) => Buffer.concat(chunks).toString('utf8'));
+  // A translator's work: the stand-in's translations of the sample texts.
+  const translated = xliff
+    .replace(/(target-language="fr-CH"[\s\S]*?<source>Swiss chocolate<\/source>)/, '$1<target>Chocolat suisse</target>')
+    .replace(/(target-language="fr-CH"[\s\S]*?<trans-unit id="description"[^>]*>\s*<source>([\s\S]*?)<\/source>)/, (_m, head: string, source: string) =>
+      `${head}<target>${source.replace('Handmade pralines, bars and truffles from our workshop in ', 'Pralinés, tablettes et truffes faits main dans notre atelier à ').replace('>Bern<', '>Berne<')}</target>`);
+  await page.setInputFiles('#import-form input[name="file"]', { name: 'wix-cat-swiss-chocolate.xlf', mimeType: 'application/x-xliff+xml', buffer: Buffer.from(translated) });
+  await page.click('#import-button');
+  await page.waitForSelector('#import-result .notice');
+  await shot('import-summary', page.locator('#import-form'));
+
   // The page in German (follows the dashboard language).
   await page.goto(url('/', { locale: 'de', type: '6a1f2c3d-0003-4000-8000-000000000003' }));
   await shot('translate-page-de', page.locator('#translate-form'));

@@ -16,7 +16,8 @@ src/
   wix/ricos.ts            Ricos rich content ↔ HTML segments
   translation/
     fields.ts             which fields are translated; item state per language
-    translate.ts          one item × one language: plan → Supertext → write back
+    translate.ts          one item × one language: collectSegments → Supertext → buildFields/saveFields
+    files.ts              translation files: export, import, reference format (SDK TranslationFiles)
     jobs.ts               a job: items × languages, progress, error handling
     site.ts               languages, translatable schemas, list pages for the translate page
     language-codes.ts     Wix locale → Supertext code (the site's mapping, else an exact code; SDK's Languages)
@@ -27,8 +28,8 @@ src/
     store.ts              Store interface, in-memory store, AES-GCM for API keys
     postgres.ts           PostgreSQL store (creates its database and tables)
   i18n/                   en, de, fr, it messages; translator; LocalizedError
-  views/                  server-rendered pages (hono/jsx): translate, job panel, settings
-public/                   app.js (selection, start, polling, test connection), app.css (Supertext's look, see "Look and feel"), supertext-logo.svg, favicon.svg, fonts/ (Inter, SIL Open Font License)
+  views/                  server-rendered pages (hono/jsx): translate (with the export and import cards), job panel, import summary, settings
+public/                   app.js (selection, start, polling, export download, import upload, test connection), app.css (Supertext's look, see "Look and feel"), supertext-logo.svg, favicon.svg, fonts/ (Inter, SIL Open Font License)
 scripts/probe.ts          read-only look at a real site's Wix Multilingual data
 scripts/vendor-sdk.sh         refreshes src/vendor/supertext-sdk from the SDK repository
 scripts/vendor-plugin-health.sh  refreshes src/vendor/supertext-plugin-health from the Commando Center repository
@@ -66,6 +67,14 @@ HTTP 429 from Wix is retried like Supertext's (up to 4 times). Errors become `Wi
    - **Write back** (`WixClient.saveContent`): if the item already has translation content in that locale, *Bulk Update Content By Key* (`schemaId` + `entityId` + `locale`; only the fields sent change); if not, *Create Content*. Update by key only works on content that exists: on a real site it answers *Entity not found* for a new translation. If Wix disagrees with what the list showed (not found on update, already exists on create), the other call follows. Each field goes with `published` (setting *Mark translations as ready to publish*) and `updatedBy: EXTERNAL_APP`. A text longer than the schema field's `maxLength` isn't written (*too long for Wix*). If Supertext returns fewer segments than sent, the SDK fails with `incomplete_response` and nothing is written for that item.
 4. Errors: authentication, limit, missing Wix Multilingual or Wix permission errors stop the job (a 401/403 from Supertext also tells the Commando Center's key check, see below); `unsupported_language`, `unsupported_feature` and `INVALID_LANGUAGE_PAIR` skip that language for the rest of the job; a main language without a Supertext language stops the job; anything else fails only that item. Jobs still running when the app restarts are marked *interrupted* on the next start.
 
+### Translation files (XLIFF and HTML)
+
+*Export for translation* and *Import translation* (cards on the translate page, `public/app.js`) use the SDK's `TranslationFiles` (SDK 0.5.0, version-neutral, re-exported by `src/supertext/index.ts`). Glue: `src/translation/files.ts`; routes `POST /api/files/export` (JSON → the file) and `POST /api/files/import` (multipart → JSON with the summaries and the summary rendered by `views/files.tsx`), both behind `X-Wix-Instance` like every API call.
+
+- **Segments:** `collectSegments` in `translate.ts`, shared with the API translation: one per text/HTML field (key = the Wix field key, e.g. `name`, `choice(small)`), one per Ricos text block (key = `<field key>#<n>`). The API path sends the same keys to `translateTexts`. The export collects with *overwrite* (every field, translated ones too); the import collects with the import's *overwrite* option, so fields with a translation are *kept* as in a job.
+- **Job metadata:** `plugin` = `Wix-Supertext-Translation`; `reference` = `<schema id>:<entity id>:<Wix locale>` (`fileReference` / `parseReference`; ids, never titles); `sourceLanguage`/`targetLanguage` = the site's mapping (`sourceCodeOf`/`targetCodeOf`), else the Wix code with `_` → `-`, so unmapped languages never block an export. XLIFF: one job per locale in one file; HTML: exactly one. File name `wix-<entity id>-<target>.xlf|.html` (`wix-<entity id>.xlf` for several), `application/x-xliff+xml` / `text/html; charset=utf-8`, `Content-Disposition: attachment`; the script saves the response as a blob (the instance header can't go with a plain link).
+- **Import:** `refuseLargeUpload` checks `Content-Length` before the body is parsed and the file's size (10 MB); nothing is stored. `TranslationFiles.read` errors become `file_invalid` / `file_missing_metadata` / `file_too_large`; per job: other `plugin` → `file_other_system`, unparsable reference, unknown schema or no source content → `file_item_gone`, a locale the site doesn't have as a target → `file_no_language`. Then `importTranslations(file, collected.segments)`; `ok` (and `source_changed` with *Also import texts whose source changed*) go through `buildFields` + `saveFields`, the API path's write-back (create or update by key, `published` from the setting, `updatedBy: EXTERNAL_APP`, `maxLength`). A Ricos field is written only when all its blocks have a translation (`rebuild` would leave the others in the source language); its translated blocks count as *not written*. `untranslated`, `invalid_markup`, `missing` are counted, never written.
+
 ### Ricos rich content
 
 Every block whose children are all `TEXT` nodes (paragraphs, headings, the paragraphs inside list items, quotes, table cells, collapsible items …) becomes one segment, as the shared rule requires (a whole paragraph per `data-st-id`). Each text run's decorations become an inline tag carrying `data-st-d` = the index of its decoration set: `<a href>` for links, `<b>`/`<i>`/`<u>` for plain bold/italic/underline, `<span>` for anything else (colours, font sizes, mentions …). Line breaks travel as `<br>`. After translation the runs are rebuilt from the tags (nested tags combine their decorations), so formatting survives reordering. Button labels (`buttonData.text`) and image alt texts (`imageData.altText`) are plain-text segments; `CODE_BLOCK` isn't translated. Node IDs and all other data stay as they were.
@@ -91,14 +100,14 @@ All of this is done by the **Supertext SDK** (next section): header `Authorizati
 
 ### Supertext SDK
 
-The app uses the TypeScript SDK from [Supertext-API-SDK-and-Guide](https://github.com/Supertext/Supertext-API-SDK-and-Guide) (`sdk/typescript`, 0.4.0), the shared client of all Supertext plugins. It provides the API client and the API key check (`checkApiKey()`, `apiKeyFingerprint()`, `SDK_VERSION`); version reports come from Supertext Plugin Health (next section). It isn't on npm yet, so it is **vendored** in `src/vendor/supertext-sdk/` (its source tree as it is: the version-neutral `index.ts` and `version.ts`, the API in `v1/`; with `LICENSE`, `COMMIT` = the SDK commit, `VERSION` and a `README.md`). Don't edit those files: fix the SDK upstream, then
+The app uses the TypeScript SDK from [Supertext-API-SDK-and-Guide](https://github.com/Supertext/Supertext-API-SDK-and-Guide) (`sdk/typescript`, 0.5.0), the shared client of all Supertext plugins. It provides the API client and the API key check (`checkApiKey()`, `apiKeyFingerprint()`, `SDK_VERSION`); version reports come from Supertext Plugin Health (next section). It isn't on npm yet, so it is **vendored** in `src/vendor/supertext-sdk/` (its source tree as it is: the version-neutral `index.ts` and `version.ts`, the API in `v1/`; with `LICENSE`, `COMMIT` = the SDK commit, `VERSION` and a `README.md`). Don't edit those files: fix the SDK upstream, then
 
 ```bash
 scripts/vendor-sdk.sh [commit-or-branch]   # default: main; SDK_DIR=/path/to/clone uses a local clone as it is
 npm run typecheck && npm test
 ```
 
-The app reaches the SDK only through `src/supertext/index.ts` (imports from `v1/`), so moving to the npm package later means replacing the folder with `npm install supertext-sdk` and changing that import to `supertext-sdk/v1`.
+The app reaches the SDK only through `src/supertext/index.ts` (imports from `v1/`, and `TranslationFiles` from the version-neutral `index.ts`), so moving to the npm package later means replacing the folder with `npm install supertext-sdk` and changing those imports to `supertext-sdk/v1` and `supertext-sdk`.
 
 ### Supertext Plugin Health
 
@@ -166,12 +175,12 @@ Read-only. Prints the site's URL and ID (what the version reports use), lists th
 ## Tests
 
 ```bash
-npm test             # Vitest: instance signing, Ricos round trip, field selection, Wix client, i18n, language codes, reporting, full flow (the SDK has its own tests upstream)
+npm test             # Vitest: instance signing, Ricos round trip, field selection, Wix client, i18n, language codes, reporting, full flow, translation files (the SDK has its own tests upstream)
 npm run typecheck
 npm run build
 ```
 
-`tests/flow.test.ts` runs the whole app (`createApp`) against the stand-ins with an in-memory store: the translate page, jobs, overwrite, settings, the language mapping, unsupported languages and politeness, language-pair and authentication errors, the key check and the reports (to the stand-in's `/report`), encrypted keys. `tests/languages.test.ts` covers the language rules, `tests/reporting.test.ts` the reporting glue with a fake transport (site URL, off switches, failure back-off, never throwing).
+`tests/flow.test.ts` runs the whole app (`createApp`) against the stand-ins with an in-memory store: the translate page, jobs, overwrite, settings, the language mapping, unsupported languages and politeness, language-pair and authentication errors, the key check and the reports (to the stand-in's `/report`), encrypted keys. `tests/languages.test.ts` covers the language rules, `tests/reporting.test.ts` the reporting glue with a fake transport (site URL, off switches, failure back-off, never throwing). `tests/files.test.ts` exports and imports through the routes against the stand-ins: reference round trip, keys and codes, every import outcome, rich text with missing blocks, upload size.
 
 ## Screenshots
 
@@ -179,7 +188,7 @@ npm run build
 npm run docs:screenshots   # Playwright, 1× scale, into docs/images/
 ```
 
-`tests/docs/screenshots.ts` starts the stand-ins and the app in-process and captures the app's pages (no key yet, the language mapping with an unmapped language, settings with the key check, translate page, results, list afterwards, overwrite warning, German UI). Regenerate them in the same commit as any UI change they show. Chromium: Playwright's own (`npx playwright install chromium`) or `CHROME=/path/to/chrome`.
+`tests/docs/screenshots.ts` starts the stand-ins and the app in-process and captures the app's pages (no key yet, the language mapping with an unmapped language, settings with the key check, translate page, results, list afterwards, overwrite warning, export for translation and the import summary after a round trip, German UI). Regenerate them in the same commit as any UI change they show. Chromium: Playwright's own (`npx playwright install chromium`) or `CHROME=/path/to/chrome`.
 
 ## CI
 
