@@ -153,7 +153,7 @@ Protocol: [Commando-Center-Supertext-Translation](https://github.com/Supertext/C
 
 ## Local development
 
-Requirements: Node.js 22.12+. No Wix account needed for most work: the stand-ins answer like the Wix and Supertext APIs for a sample site (`tests/standin/seed.ts`: a Swiss chocolate shop in English with German, French and Italian, two products, a category, a blog post; `samples.json` holds human translations of its texts).
+Requirements: Node.js 22.12+ (CI runs the tests on Node 22, 24 and 26; the Docker image uses Node 22). No Wix account needed for most work: the stand-ins answer like the Wix and Supertext APIs for a sample site (`tests/standin/seed.ts`: a Swiss chocolate shop in English with German, French and Italian, two products, a category, a blog post; `samples.json` holds human translations of its texts).
 
 ```bash
 npm install
@@ -240,7 +240,7 @@ The demo is a Wix site, not a container: Wix hosts the site, Railway only the ap
 
 Dependabot (`.github/dependabot.yml`) opens weekly pull requests: minor and patch updates grouped into one, GitHub Actions in another, each major update on its own. Merge one when CI is green and it doesn't change what the app supports.
 
-Some major versions are ignored on purpose: TypeScript (7.x is the native compiler; stay on 5.x until the type-checking and build tooling here is moved to it) and `@types/node` (the types must match the oldest Node version the app supports, Node 22, not the newest). Lift an ignore rule when the app moves to the new version.
+Some major versions are ignored on purpose: TypeScript (7.x is the native compiler; stay on 6.x until the type-checking and build tooling here is moved to it) and `@types/node` (the types must match the oldest Node version the app supports, Node 22, not the newest). Lift an ignore rule when the app moves to the new version.
 
 ## Code quality and security checks
 
